@@ -5432,8 +5432,11 @@ function StatsModal({ sessions: allSessions, members, userColor, statsSince }) {
     ? allSessions
     : statsView === 'celkem'
       ? allSessions.filter((s) => !s.session_date || s.session_date >= cutoffDate)
+      // "Historie" appka bere jako úplně všechno od začátku (staré i
+      // spolehlivé roky dohromady) -- na přání appka to NENÍ jen
+      // pre-cutoff podmnožina, appka tam schválně přičítá i "Celkem".
       : statsView === 'historie'
-        ? allSessions.filter((s) => s.session_date && s.session_date < cutoffDate)
+        ? allSessions
         : allSessions.filter((s) => yearOf(s) === Number(statsView))
 
   const byUser = {}
@@ -5721,8 +5724,9 @@ function StatsModal({ sessions: allSessions, members, userColor, statsSince }) {
       </div>
       {statsView === 'historie' && (
         <p className="help-note" style={{ padding: '0 18px 10px' }}>
-          Výpravy před {cutoffDate?.split('-').reverse().join('.')} appka nemusí mít zapsané neúspěšné výpravy (jen zpětně dopsané úlovky) —
-          čísla úspěšnosti tady proto neber jako přesná, počty úlovků a druhů v pořádku jsou.
+          Zahrnuje i výpravy před {cutoffDate?.split('-').reverse().join('.')}, kde appka nemusí mít zapsané
+          neúspěšné výpravy (jen zpětně dopsané úlovky) — čísla úspěšnosti tady proto neber jako přesná,
+          počty úlovků a druhů v pořádku jsou.
         </p>
       )}
       <div style={{ padding: '0 18px 14px' }}>
