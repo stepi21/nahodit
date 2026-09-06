@@ -695,40 +695,71 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
   async function loadTodayIndex(sessionsData) {
     try {
+      // --- referenční bod appka bere podle NEJČASTĚJŠÍHO místa party
+      // (ne matematický průměr všech souřadnic) -- u party, co chytá na
+      // víc různých řekách, by průměr souřadnic mohl padnout někam mezi
+      // ně, kde appka nenajde smysluplnou stanici pro žádnou z nich.
+      // Appka seskupí výpravy podle jména revíru (fallback název výpravy),
+      // vezme nejpočetnější skupinu a spočítá její vlastní průměr GPS --
+      // ten bývá mnohem těsnější (jedna konkrétní řeka/místo).
       const points = sessionsData.filter((s) => s.lat != null && s.lng != null)
-      const ref = points.length
-        ? { lat: points.reduce((sum, p) => sum + p.lat, 0) / points.length, lng: points.reduce((sum, p) => sum + p.lng, 0) / points.length }
-        : { lat: 49.8, lng: 15.5 }
-      const todayDateStr = new Date().toISOString().slice(0, 10)
-      const moonPhase = moonPhaseName(todayDateStr)
-
-      let pressureBucket = null, trendLabel = null
-      try {
-        const w = await fetchWeather(ref.lat, ref.lng, todayDateStr)
-        pressureBucket = pressureBucketKey(w.pressure)
-        trendLabel = trendKey(w.pressureTrend)
-      } catch {
-        // appka počasí nesehnala (offline appka podobně) -- appka jede
-        // dál jen s fází měsíce.
+      let ref = { lat: 49.8, lng: 15.5 }
+      if (points.length) {
+        const groups = {}
+        points.forEach((s) => {
+          const key = (s.revir || s.title || '').trim().toLowerCase() || `${s.lat.toFixed(3)},${s.lng.toFixed(3)}`
+          ;(groups[key] = groups[key] || []).push(s)
+        })
+        const top = Object.values(groups).sort((a, b) => b.length - a.length)[0]
+        ref = {
+          lat: top.reduce((sum, p) => sum + p.lat, 0) / top.length,
+          lng: top.reduce((sum, p) => sum + p.lng, 0) / top.length,
+        }
       }
 
-      let spaLevel = null
+      let stationLabel = null
+      let spaLevelToday = null
       try {
         const stations = await findNearestStations(ref.lat, ref.lng, 1)
         if (stations[0]) {
+          stationLabel = stations[0].stream ? `${stations[0].name} (${stations[0].stream})` : stations[0].name
           const cond = await fetchLiveConditions(stations[0].objID)
-          spaLevel = cond?.spa_level ?? null
+          spaLevelToday = cond?.spa_level ?? null
         }
       } catch {
-        // appka ČHMÚ nesehnala -- appka jede dál bez vodního stavu.
+        // appka ČHМÚ nesehnala -- appka jede dál bez vodního stavu i bez popisku stanice.
       }
 
-      const today = { moonPhase, pressureBucket, trendLabel, spaLevel }
-      setTodayIndex({
-        status: 'ready',
-        dravec: scoreCategoryIndex('dravec', sessionsData, today),
-        bila: scoreCategoryIndex('bila', sessionsData, today),
-      })
+      const DAY_LABELS = ['dnes', 'zítra', 'pozítří']
+      const days = []
+      for (let offset = 0; offset < DAY_LABELS.length; offset++) {
+        const d = new Date(); d.setDate(d.getDate() + offset)
+        const dateStr = d.toISOString().slice(0, 10)
+        const moonPhase = moonPhaseName(dateStr)
+
+        let pressureBucket = null, trendLabel = null
+        try {
+          const w = await fetchWeather(ref.lat, ref.lng, dateStr)
+          pressureBucket = pressureBucketKey(w.pressure)
+          trendLabel = trendKey(w.pressureTrend)
+        } catch {
+          // appka počasí/předpověď na tenhle den nesehnala -- appka jede
+          // dál jen s tím, co appka má (fáze měsíce).
+        }
+
+        const dayInfo = {
+          moonPhase, pressureBucket, trendLabel,
+          spaLevel: offset === 0 ? spaLevelToday : null,
+        }
+        days.push({
+          label: DAY_LABELS[offset],
+          dateStr,
+          dravec: scoreCategoryIndex('dravec', sessionsData, dayInfo),
+          bila: scoreCategoryIndex('bila', sessionsData, dayInfo),
+        })
+      }
+
+      setTodayIndex({ status: 'ready', station: stationLabel, days })
     } catch {
       setTodayIndex({ status: 'error' })
     }
@@ -3736,28 +3767,39 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   // celou kartu navíc).
   function renderTodayIndex() {
     if (todayIndex.status === 'loading') {
-      return <div className="index-block index-loading">Počítám dnešní podmínky…</div>
+      return <div className="index-block index-loading">Počítám podmínky…</div>
     }
     if (todayIndex.status === 'error') return null
     return (
       <div className="index-block">
         <div className="leaderboard-head" style={{ borderTop: 'none' }}>
           <IconTrend size={15} />
-          <span>Podmínky dnes</span>
+          <span>Podmínky a výhled</span>
         </div>
         <div className="index-row">
-          {['dravec', 'bila'].map((cat) => {
-            const r = todayIndex[cat]
-            return (
-              <div className={`index-cell category-${cat}`} key={cat}>
-                <div className="index-cell-label">{cat === 'dravec' ? 'dravec' : 'bílá ryba'}</div>
-                <div className="index-cell-value">
-                  {r?.status === 'ready' ? r.level : 'zatím málo dat'}
-                </div>
+          {['dravec', 'bila'].map((cat) => (
+            <div className={`index-cell category-${cat}`} key={cat}>
+              <div className="index-cell-label">{cat === 'dravec' ? 'dravec' : 'bílá ryba'}</div>
+              <div className="index-cell-days">
+                {todayIndex.days.map((d) => {
+                  const r = d[cat]
+                  return (
+                    <div className="index-day-row" key={d.label}>
+                      <span className="index-day-label">{d.label}</span>
+                      <span className="index-day-value">{r?.status === 'ready' ? r.level : 'málo dat'}</span>
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
+        {todayIndex.station && (
+          <div className="index-footer">
+            <span>Podle: {todayIndex.station}</span>
+            <span>zítra/pozítří bez vodního stavu</span>
+          </div>
+        )}
       </div>
     )
   }
@@ -6085,6 +6127,15 @@ function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onReloca
   )
 }
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray
+}
+
 function SettingsModal({ userId, profile, groupId, groupInfo, onSaved, onGroupSaved }) {
   const [name, setName] = useState(profile?.display_name || '')
   const [color, setColor] = useState(profile?.color || USER_PALETTE[0])
@@ -6118,6 +6169,75 @@ function SettingsModal({ userId, profile, groupId, groupInfo, onSaved, onGroupSa
     if (error) { setStatsSinceError(error.message); return }
     onGroupSaved?.(data)
     setStatsSinceMessage('Uloženo — appka od tohohle data počítá "Celkem" ve Statistikách.')
+  }
+
+  // --- push notifikace (chyt parťáka + denní výhled) ---
+  const [pushStatus, setPushStatus] = useState('checking') // checking|unsupported|off|on|busy
+  const [pushMessage, setPushMessage] = useState(null)
+
+  useEffect(() => {
+    async function check() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        setPushStatus('unsupported'); return
+      }
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      setPushStatus(sub ? 'on' : 'off')
+    }
+    check()
+  }, [])
+
+  async function handleEnablePush() {
+    setPushStatus('busy')
+    setPushMessage(null)
+    try {
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!vapidKey) throw new Error('Appka nemá nastavený VAPID klíč (VITE_VAPID_PUBLIC_KEY).')
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        setPushStatus('off')
+        setPushMessage('Bez povolení v prohlížeči/appce appka notifikace poslat nemůže.')
+        return
+      }
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      })
+      const json = sub.toJSON()
+      // appka nejdřív smaže případný starý řádek se stejným endpointem
+      // (kdyby appka odsud běžela dřív), pak vloží čerstvý -- appka
+      // se tak appce vyhne potřebě mít samostatnou UPDATE policy.
+      await supabase.from('push_subscriptions').delete().eq('endpoint', json.endpoint)
+      const { error } = await supabase.from('push_subscriptions').insert({
+        user_id: userId, group_id: groupId,
+        endpoint: json.endpoint, p256dh: json.keys.p256dh, auth_key: json.keys.auth,
+      })
+      if (error) throw error
+      setPushStatus('on')
+      setPushMessage('Notifikace appka zapnula.')
+    } catch (err) {
+      setPushStatus('off')
+      setPushMessage('Nepodařilo se zapnout: ' + (err.message || err))
+    }
+  }
+
+  async function handleDisablePush() {
+    setPushStatus('busy')
+    setPushMessage(null)
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        await sub.unsubscribe()
+      }
+      setPushStatus('off')
+      setPushMessage('Notifikace appka vypnula.')
+    } catch (err) {
+      setPushStatus('on')
+      setPushMessage('Nepodařilo se vypnout: ' + (err.message || err))
+    }
   }
 
   async function handleSave(e) {
@@ -6198,6 +6318,25 @@ function SettingsModal({ userId, profile, groupId, groupInfo, onSaved, onGroupSa
               {statsSinceMessage && <p className="hint-text" style={{ marginTop: 8 }}>{statsSinceMessage}</p>}
               <button className="new-btn" type="submit" disabled={statsSinceBusy} style={{ marginTop: 10 }}>{statsSinceBusy ? 'Ukládám…' : 'Uložit'}</button>
             </form>
+          </div>
+
+          <div style={{ borderTop: '1px dashed var(--paper-line)', marginTop: 20, paddingTop: 16 }}>
+            <label className="field-label" style={{ marginTop: 0 }}>Push notifikace</label>
+            <p className="help-note">
+              Appka pošle notifikaci na tenhle telefon/appku i se zavřenou appkou -- když někdo z party
+              chytí úlovek nebo založí výpravu, a ráno, když appka vidí slušnou šanci na příští tři dny.
+            </p>
+            {pushStatus === 'unsupported' && <p className="hint-text">Tenhle prohlížeč/appka push notifikace nepodporuje.</p>}
+            {pushStatus === 'checking' && <p className="hint-text">Zjišťuji stav…</p>}
+            {(pushStatus === 'off' || pushStatus === 'busy') && (
+              <button className="new-btn" type="button" disabled={pushStatus === 'busy'} onClick={handleEnablePush} style={{ marginTop: 4 }}>
+                {pushStatus === 'busy' ? 'Zapínám…' : 'Zapnout notifikace'}
+              </button>
+            )}
+            {pushStatus === 'on' && (
+              <button className="new-btn" type="button" onClick={handleDisablePush} style={{ marginTop: 4 }}>Vypnout notifikace</button>
+            )}
+            {pushMessage && <p className="hint-text" style={{ marginTop: 8 }}>{pushMessage}</p>}
           </div>
       </div>
     </>
