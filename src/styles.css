@@ -462,6 +462,11 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
 .index-cell.category-bila{ background:#C4A572; color:#3A2A0F; }
 .index-cell-label{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.04em; opacity:.85; }
 .index-cell-value{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-lg); margin-top:2px; }
+.index-cell-days{ display:flex; flex-direction:column; gap:5px; margin-top:6px; }
+.index-day-row{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.index-day-label{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.03em; opacity:.8; }
+.index-day-value{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-sm2); }
+.index-footer{ padding:0 14px 12px; font-size:var(--fs-2xs); color:var(--ink-soft); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
 
 .leaderboard-card{ margin:0 18px 14px; background:var(--white); border:1px solid var(--paper-line); border-radius:12px; overflow:hidden; }
 .leaderboard-head{ display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid #EFEBDF; font-family:'IBM Plex Mono', monospace; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); }
