@@ -168,6 +168,12 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeUserFilter, setActiveUserFilter] = useState('all')
   const [members, setMembers] = useState([])
+  // Od kdy appka počítá statistiky jako "spolehlivé" (Celkem) -- výchozí
+  // je datum vzniku skupiny (groups.stats_since, migrace 17), appka to
+  // appce nechá zeptat v SettingsModal, kdyby to chtěl uživatel ručně
+  // posunout (např. appku začal reálně používat až pár týdnů po
+  // založení skupiny).
+  const [groupInfo, setGroupInfo] = useState(null)
   const [viewMode, setViewMode] = useState('aggregate') // 'aggregate' | 'detail'
   const [myProfile, setMyProfile] = useState(profile)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -478,7 +484,16 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     if (top) window.scrollTo(0, 0)
   }, [activePanel, homeNavNonce])
 
-  useEffect(() => { loadSessions(); loadMembers(); loadBaitCatalog(); loadLocationsCatalog() }, [groupId])
+  useEffect(() => { loadSessions(); loadMembers(); loadBaitCatalog(); loadLocationsCatalog(); loadGroupInfo() }, [groupId])
+
+  async function loadGroupInfo() {
+    const { data } = await supabase
+      .from('groups')
+      .select('id, name, created_at, stats_since')
+      .eq('id', groupId)
+      .single()
+    if (data) setGroupInfo(data)
+  }
 
   async function loadBaitCatalog() {
     const { data } = await supabase
@@ -4581,9 +4596,9 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             : activePanel === 'baits' ? renderBaitsList()
             : activePanel === 'catches' ? renderCatchesList()
             : activePanel === 'records' ? <RecordsModal sessions={sessions} userName={userName} userColor={userColor} onOpenCatch={(c) => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatch(c) }} />
-            : activePanel === 'stats' ? <StatsModal sessions={sessions} members={members} userColor={userColor} />
+            : activePanel === 'stats' ? <StatsModal sessions={sessions} members={members} userColor={userColor} statsSince={groupInfo?.stats_since || groupInfo?.created_at} />
             : activePanel === 'help' ? <HelpModal />
-            : activePanel === 'settings' ? <SettingsModal userId={userId} profile={myProfile} onSaved={(updated) => { setMyProfile(updated); loadMembers() }} />
+            : activePanel === 'settings' ? <SettingsModal userId={userId} profile={myProfile} groupId={groupId} groupInfo={groupInfo} onSaved={(updated) => { setMyProfile(updated); loadMembers() }} onGroupSaved={(g) => setGroupInfo(g)} />
             : renderSessionList()}
         </aside>
 
@@ -5390,7 +5405,37 @@ function RecordsModal({ sessions, userName, userColor, onOpenCatch }) {
   )
 }
 
-function StatsModal({ sessions, members, userColor }) {
+function StatsModal({ sessions: allSessions, members, userColor, statsSince }) {
+  // --- přepínač Celkem / rok / Historie ---
+  // "Spolehlivé" appka počítá od statsSince (datum vzniku skupiny --
+  // groups.stats_since, appka to jde ručně posunout v Nastavení) --
+  // odtud appka ví jistě, že máš zapsané i neúspěšné výpravy, ne jen
+  // zpětně dopsané úlovky. Starší výpravy appka drží zvlášť pod
+  // "Historie", protože tam "úspěšnost" (poměr výprava/úlovek) není
+  // spolehlivá. Appka srovnává PŘESNÁ DATA (ne jen roky) -- funguje
+  // správně i u skupiny založené v půlce roku.
+  // Bez statsSince appka radši nedělí (žádná appka historie), ať appka
+  // něco nespočítá tiše špatně -- to appce nastane jen krátce po
+  // migraci, než appka doběhne loadGroupInfo().
+  const cutoffDate = statsSince ? statsSince.slice(0, 10) : null
+  function yearOf(s) { return s.session_date ? Number(s.session_date.slice(0, 4)) : null }
+  const availableYears = cutoffDate
+    ? Array.from(
+        new Set(allSessions.filter((s) => s.session_date >= cutoffDate).map(yearOf).filter((y) => y != null))
+      ).sort((a, b) => b - a)
+    : Array.from(new Set(allSessions.map(yearOf).filter((y) => y != null))).sort((a, b) => b - a)
+  const hasHistory = cutoffDate ? allSessions.some((s) => s.session_date && s.session_date < cutoffDate) : false
+
+  const [statsView, setStatsView] = useState('celkem') // 'celkem' | rok (string) | 'historie'
+
+  const sessions = !cutoffDate
+    ? allSessions
+    : statsView === 'celkem'
+      ? allSessions.filter((s) => !s.session_date || s.session_date >= cutoffDate)
+      : statsView === 'historie'
+        ? allSessions.filter((s) => s.session_date && s.session_date < cutoffDate)
+        : allSessions.filter((s) => yearOf(s) === Number(statsView))
+
   const byUser = {}
   sessions.forEach((s) => {
     const uid = s.user_id
@@ -5665,6 +5710,21 @@ function StatsModal({ sessions, members, userColor }) {
   return (
     <>
       <div className="sb-head"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconChart size={14} color="var(--water-deep)" /> Statistiky party</span></div>
+      <div className="filter-row" style={{ padding: '0 18px 10px' }}>
+        <button className={`filter-chip ${statsView === 'celkem' ? 'active' : ''}`} onClick={() => setStatsView('celkem')}>Celkem</button>
+        {availableYears.map((y) => (
+          <button key={y} className={`filter-chip ${statsView === String(y) ? 'active' : ''}`} onClick={() => setStatsView(String(y))}>{y}</button>
+        ))}
+        {hasHistory && (
+          <button className={`filter-chip ${statsView === 'historie' ? 'active' : ''}`} onClick={() => setStatsView('historie')}>Historie</button>
+        )}
+      </div>
+      {statsView === 'historie' && (
+        <p className="help-note" style={{ padding: '0 18px 10px' }}>
+          Výpravy před {cutoffDate?.split('-').reverse().join('.')} appka nemusí mít zapsané neúspěšné výpravy (jen zpětně dopsané úlovky) —
+          čísla úspěšnosti tady proto neber jako přesná, počty úlovků a druhů v pořádku jsou.
+        </p>
+      )}
       <div style={{ padding: '0 18px 14px' }}>
         {members.map((m) => {
             const u = byUser[m.id] || { visits: 0, species: {} }
@@ -6021,7 +6081,7 @@ function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onReloca
   )
 }
 
-function SettingsModal({ userId, profile, onSaved }) {
+function SettingsModal({ userId, profile, groupId, groupInfo, onSaved, onGroupSaved }) {
   const [name, setName] = useState(profile?.display_name || '')
   const [color, setColor] = useState(profile?.color || USER_PALETTE[0])
   const [busy, setBusy] = useState(false)
@@ -6031,6 +6091,30 @@ function SettingsModal({ userId, profile, onSaved }) {
   const [pwBusy, setPwBusy] = useState(false)
   const [pwMessage, setPwMessage] = useState(null)
   const [pwError, setPwError] = useState(null)
+
+  // --- od kdy appka počítá statistiky jako spolehlivé (viz StatsModal) ---
+  const initialStatsSince = (groupInfo?.stats_since || groupInfo?.created_at || '').slice(0, 10)
+  const [statsSince, setStatsSinceInput] = useState(initialStatsSince)
+  const [statsSinceBusy, setStatsSinceBusy] = useState(false)
+  const [statsSinceMessage, setStatsSinceMessage] = useState(null)
+  const [statsSinceError, setStatsSinceError] = useState(null)
+
+  async function handleSaveStatsSince(e) {
+    e.preventDefault()
+    setStatsSinceError(null)
+    setStatsSinceMessage(null)
+    if (!statsSince) { setStatsSinceError('Vyber datum.'); return }
+    setStatsSinceBusy(true)
+    const { data, error } = await supabase.from('groups')
+      .update({ stats_since: statsSince })
+      .eq('id', groupId)
+      .select()
+      .single()
+    setStatsSinceBusy(false)
+    if (error) { setStatsSinceError(error.message); return }
+    onGroupSaved?.(data)
+    setStatsSinceMessage('Uloženo — appka od tohohle data počítá "Celkem" ve Statistikách.')
+  }
 
   async function handleSave(e) {
     e.preventDefault()
@@ -6089,6 +6173,26 @@ function SettingsModal({ userId, profile, onSaved }) {
               {pwError && <p className="error-text">{pwError}</p>}
               {pwMessage && <p className="hint-text" style={{ marginTop: 8 }}>{pwMessage}</p>}
               <button className="new-btn" type="submit" disabled={pwBusy} style={{ marginTop: 10 }}>{pwBusy ? 'Ukládám…' : 'Nastavit heslo'}</button>
+            </form>
+          </div>
+
+          <div style={{ borderTop: '1px dashed var(--paper-line)', marginTop: 20, paddingTop: 16 }}>
+            <label className="field-label" style={{ marginTop: 0 }}>Statistiky se počítají od</label>
+            <p className="help-note">
+              Výpravy před tímhle datem appka ve Statistikách schová pod "Historie" — čísla úspěšnosti
+              tam totiž nemusí být přesná (typicky proto, že staré neúspěšné výpravy appka nemá zpětně
+              zapsané). Výchozí je den založení skupiny, klidně to posuň, pokud appku party reálně
+              začala používat později.
+            </p>
+            <form onSubmit={handleSaveStatsSince}>
+              <input
+                className="text-input" type="date"
+                value={statsSince} onChange={(e) => setStatsSinceInput(e.target.value)}
+                style={{ marginTop: 4 }}
+              />
+              {statsSinceError && <p className="error-text">{statsSinceError}</p>}
+              {statsSinceMessage && <p className="hint-text" style={{ marginTop: 8 }}>{statsSinceMessage}</p>}
+              <button className="new-btn" type="submit" disabled={statsSinceBusy} style={{ marginTop: 10 }}>{statsSinceBusy ? 'Ukládám…' : 'Uložit'}</button>
             </form>
           </div>
       </div>
