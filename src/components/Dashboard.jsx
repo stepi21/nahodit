@@ -6133,15 +6133,15 @@ function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onReloca
               </>
             )}
             <div className="input-row">
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Datum</label>
                 <input className="text-input" type="date" required value={draft.date} onChange={(e) => set('date', e.target.value)} />
               </div>
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Od</label>
                 <input className="text-input" type="time" value={draft.timeFrom} onChange={(e) => set('timeFrom', e.target.value)} />
               </div>
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Do</label>
                 <input className="text-input" type="time" value={draft.timeTo} onChange={(e) => set('timeTo', e.target.value)} />
               </div>
@@ -6768,15 +6768,15 @@ function SessionFormPanel({ draft, setDraft, onArmRod, onSave, onClose, baitPhot
               </>
             )}
             <div className="input-row">
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Datum</label>
                 <input className="text-input" type="date" required value={draft.date} onChange={(e) => set('date', e.target.value)} />
               </div>
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Od</label>
                 <input className="text-input" type="time" value={draft.timeFrom} onChange={(e) => set('timeFrom', e.target.value)} />
               </div>
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Do</label>
                 <input className="text-input" type="time" value={draft.timeTo} onChange={(e) => set('timeTo', e.target.value)} />
               </div>
@@ -7069,11 +7069,11 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
             <label className="field-label">Revír / lokalita</label>
             <input className="text-input" value={draft.revir} onChange={(e) => set('revir', e.target.value)} placeholder="např. Labe 19" />
             <div className="input-row">
-              <div className="input-row-auto field-compact">
+              <div>
                 <label className="field-label">Délka (cm)</label>
                 <input className="text-input" type="number" value={draft.length} onChange={(e) => set('length', e.target.value)} />
               </div>
-              <div className="input-row-auto field-compact">
+              <div>
                 <label className="field-label">Váha (kg)</label>
                 <input className="text-input" type="number" step="0.1" value={draft.weight} onChange={(e) => setDraft((d) => ({ ...d, weight: e.target.value, weightEstimated: false }))} />
               </div>
