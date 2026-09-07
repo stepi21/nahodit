@@ -153,6 +153,10 @@ function findStationsByRevir(revir, locationsCatalog) {
 
 export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSignOut }) {
   const [sessions, setSessions] = useState([])
+  // Ref-zrcadlo hodnoty sessions, pro použití uvnitř event listeneru
+  // (visibilitychange níže), který jinak vidí jen zastaralá data.
+  const sessionsRef = useRef([])
+  useEffect(() => { sessionsRef.current = sessions }, [sessions])
   // Index aktivity ryb na Domů -- appka porovná DNEŠNÍ podmínky (fáze
   // měsíce, tlak, trend tlaku, vodní stav u appce nejbližší stanice) s
   // vlastní historií úlovků party, zvlášť pro dravce a zvlášť pro bílou
@@ -485,6 +489,19 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   }, [activePanel, homeNavNonce])
 
   useEffect(() => { loadSessions(); loadMembers(); loadBaitCatalog(); loadLocationsCatalog(); loadGroupInfo() }, [groupId])
+
+  // "Podmínky a výhled" se spočítá jen jednou, při prvním načtení.
+  // U appky nainstalované na ploše, která běží dál na pozadí, by tak
+  // klidně mohla ukazovat včerejší den, dokud appku znovu neotevřeš.
+  // Proto appka index přepočítá znovu pokaždé, když se appka vrátí
+  // zpátky do popředí.
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') loadTodayIndex(sessionsRef.current)
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   async function loadGroupInfo() {
     const { data } = await supabase
