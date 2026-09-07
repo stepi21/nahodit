@@ -72,8 +72,17 @@ body{
 .text-input[type="time"]::-webkit-datetime-edit{ padding:0; line-height:18px; }
 .text-input[type="time"]::-webkit-datetime-edit-fields-wrapper{ padding:0; }
 .text-input[type="time"]::-webkit-calendar-picker-indicator{ padding:0; margin:0 0 0 4px; }
+/* Appka stejně zúží i type="date" -- appka mu navíc schová ikonku
+   kalendáře (appka appce na mobilu otevře nativní výběr datumu
+   klepnutím kamkoli do pole i bez ní), ať appce zbyde co nejvíc místa
+   pro samotné číslice dne/měsíce/roku. */
+.text-input[type="date"]{ display:flex; align-items:center; -webkit-appearance:none; appearance:none; }
+.text-input[type="date"]::-webkit-datetime-edit{ padding:0; line-height:18px; }
+.text-input[type="date"]::-webkit-datetime-edit-fields-wrapper{ padding:0; }
+.text-input[type="date"]::-webkit-calendar-picker-indicator{ display:none; }
 .text-input:focus{ outline:none; border-color:var(--water-mid); }
-.input-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+.input-row{ display:flex; flex-wrap:wrap; gap:6px; align-items:flex-end; }
+.input-row .text-input{ padding-left:6px; padding-right:6px; }
 .input-row > div{ flex:1; min-width:0; }
 /* Time a date pole appka nenutí do 100% šířky (appka appce to mobilní
    Safari stejně nerespektuje) -- appka je nechá vykreslit v jejich
