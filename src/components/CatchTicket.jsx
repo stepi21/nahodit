@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../supabaseClient'
 import { uploadPhoto } from '../lib/storage.js'
 import { moonPhaseName, fetchWeather } from '../lib/weather.js'
 import { fetchWaterConditions, findNearestStations, WATER_PRECISION_LABEL, SPA_LEVEL_INFO } from '../lib/hydrology.js'
 import { estimateWeightKg, hasWeightEstimate } from '../lib/weightEstimate.js'
+import { guessCategoryFromSpecies } from '../lib/speciesCategory.js'
 import { actualDateForTime } from '../lib/sessionTime.js'
 import { useLockBodyScroll } from '../lib/useLockBodyScroll.js'
 import BaitPicker from './BaitPicker.jsx'
@@ -73,7 +74,7 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
   const [weatherBusy, setWeatherBusy] = useState(false)
   const [weatherError, setWeatherError] = useState(null)
   const [form, setForm] = useState({
-    species: c.species, category: c.category, revir: c.revir || '',
+    species: c.species, category: c.category, categoryManual: false, revir: c.revir || '',
     length_cm: c.length_cm ?? '', weight_kg: c.weight_kg ?? '', weight_estimated: c.weight_estimated ?? false, bait: c.bait ?? '',
     time: c.caught_at ? toLocalTimeInput(c.caught_at) : '',
     photoFile: null, baitPhotoFile: null, bait_photo_url: c.bait_photo_url || null,
@@ -85,6 +86,17 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
     water_spa_level: c.water_spa_level ?? null,
   })
   const color = CATEGORY_COLOR[c.category]
+
+  // Appka kategorii (dravec/bílá) odvodí z druhu stejně jako u nového
+  // úlovku -- appka to appce nechá dřív ručně vybrané appce jen jako
+  // fallback pro appce nerozpoznaný druh (categoryManual).
+  useEffect(() => {
+    if (form.categoryManual) return
+    const guess = guessCategoryFromSpecies(form.species)
+    if (guess && guess !== form.category) setForm((f) => ({ ...f, category: guess }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.species])
+  const speciesCategoryKnown = guessCategoryFromSpecies(form.species) != null
 
   async function handleFetchWeather() {
     if (!form.time) { setWeatherError('Nejdřív vyplň čas úlovku.'); return }
@@ -302,13 +314,14 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
             <form onSubmit={handleSave}>
               <label className="field-label">Druh ryby</label>
               <input className="text-input" required value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })} />
+              {form.species && !speciesCategoryKnown && (
+                <div className="chip-row" style={{ marginTop: 4, marginBottom: 4 }}>
+                  <button type="button" className={`chip-btn ${form.category === 'dravec' ? 'active' : ''}`} onClick={() => setForm({ ...form, category: 'dravec', categoryManual: true })}>Dravec</button>
+                  <button type="button" className={`chip-btn ${form.category === 'bila' ? 'active' : ''}`} onClick={() => setForm({ ...form, category: 'bila', categoryManual: true })}>Bílá ryba</button>
+                </div>
+              )}
               <label className="field-label">Revír / lokalita</label>
               <input className="text-input" value={form.revir} onChange={(e) => setForm({ ...form, revir: e.target.value })} placeholder="např. Labe 19" />
-              <label className="field-label">Kategorie</label>
-              <select className="text-input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                <option value="dravec">Dravec</option>
-                <option value="bila">Bílá ryba</option>
-              </select>
               <div className="input-row">
                 <div>
                   <label className="field-label">Délka (cm)</label>
