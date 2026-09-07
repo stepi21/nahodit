@@ -2883,18 +2883,24 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
   const [collapsedGroups, setCollapsedGroups] = useState(new Set())
   const collapseInitRef = useRef(false)
-  useEffect(() => {
-    if (collapseInitRef.current || sessions.length === 0) return
-    collapseInitRef.current = true
-    const groups = buildGroups(sessions)
+  // Appka spočítá výchozí rozbalení (jen nejnovější rok+měsíc rozbalené,
+  // zbytek sbalený) -- appka to používá jak při prvním načtení výprav,
+  // tak při návratu na výchozí pohled záložky Výpravy (druhý klik na
+  // stejnou záložku).
+  function defaultCollapsedGroups(list) {
+    const groups = buildGroups(list)
     const allKeys = new Set()
     groups.forEach((y) => { allKeys.add(y.key); y.months.forEach((m) => allKeys.add(m.key)) })
-    // nejnovější rok a měsíc necháme rozbalené, zbytek sbalíme
     if (groups.length) {
       allKeys.delete(groups[0].key)
       if (groups[0].months.length) allKeys.delete(groups[0].months[0].key)
     }
-    setCollapsedGroups(allKeys)
+    return allKeys
+  }
+  useEffect(() => {
+    if (collapseInitRef.current || sessions.length === 0) return
+    collapseInitRef.current = true
+    setCollapsedGroups(defaultCollapsedGroups(sessions))
   }, [sessions])
 
   // Při aktivním hledání appka dočasně rozbalí úplně vše (ať vidíš všechny
@@ -2969,6 +2975,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       if (panel === 'map') { setMapWho('both'); setMapWhat('catches'); mapForceResetRef.current = true; setMapResetNonce((n) => n + 1) }
       else if (panel === null) {
         setViewMode('aggregate'); setActiveCategory('all'); setActiveUserFilter('all')
+        setCollapsedGroups(defaultCollapsedGroups(sessions))
         if (sidebarRef.current) sidebarRef.current.scrollTop = 0
         if (mobileSheetBodyRef.current) mobileSheetBodyRef.current.scrollTop = 0
         window.scrollTo(0, 0)
@@ -5337,7 +5344,7 @@ function SaveLocationForm({ source, onCancel, onSave }) {
   }
 
   return (
-    <div className="modal-bg show" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="side-panel">
       <div className="ticket" style={{ maxWidth: 380 }}>
         <div className="ticket-top">
           <button className="ticket-close" onClick={onCancel}><IconClose size={16} /></button>
@@ -6090,7 +6097,7 @@ function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onReloca
   }
 
   return (
-    <div className="modal-bg show" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="side-panel">
       <div className="ticket" style={{ maxWidth: 400 }}>
         <div className="ticket-top">
           <button className="ticket-close" onClick={onClose}><IconClose size={16} /></button>
