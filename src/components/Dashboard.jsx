@@ -10,7 +10,8 @@ import BaitPicker from './BaitPicker.jsx'
 import LocationsModal from './LocationsModal.jsx'
 import { fetchWeather, moonPhaseName } from '../lib/weather.js'
 import { fetchWaterConditions, fetchLiveConditions, findNearestStations, WATER_PRECISION_LABEL, SPA_LEVEL_INFO } from '../lib/hydrology.js'
-import { estimateWeightKg, hasWeightEstimate } from '../lib/weightEstimate.js'
+import { estimateWeightKg } from '../lib/weightEstimate.js'
+import { guessCategoryFromSpecies } from '../lib/speciesCategory.js'
 import { crossesMidnight, actualDateForTime, sessionDurationMinutes, formatDurationHM, nowHHMM } from '../lib/sessionTime.js'
 import { uploadPhoto } from '../lib/storage.js'
 import { buildRiverAreasFromLine } from '../lib/riverShape.js'
@@ -51,12 +52,17 @@ const SESSION_TYPES = [
 // zůstává čitelná/zobrazitelná beze změny.
 const AREA_TYPES = []
 // LURE_TYPES je nezávislé na kreslení -- appka ho používá jen pro věci,
-// co s plochou/bodem nesouvisí (pole "Cíl", popisek "Místo" místo "Prut").
-const LURE_TYPES = ['privlac']
-// Užší konstanta jen pro kreslení bodů na mapě: muška se má na mapě
-// chovat jako přívlač (jen bod "kde stojím", žádné prutové kolečko
-// navíc), ale jinde v appce (popisky "Prut"/"Místo", chování formulářů...)
-// zůstává bodovým typem -- to pořád řeší LURE_TYPES beze změny.
+// co s plochou/bodem nesouvisí (pole "Cíl", popisek "Místo" místo "Prut",
+// jedna nástraha za celou výpravu místo výběru z víc prutů). Muška sem
+// dřív chybně nepatřila, i když komentář o kus níž (MAP_LURE_LOOK_TYPES)
+// dlouho popisoval, že se má chovat stejně jako přívlač -- opraveno, ať
+// muška všude v appce (labely, jedna nástraha na výpravu, zápis úlovku)
+// jede přesně jako přívlač.
+const LURE_TYPES = ['privlac', 'muska']
+// Beze změny stejný seznam jako LURE_TYPES (teď, co LURE_TYPES mušku
+// obsahuje taky) -- appka ho nechává jako samostatnou konstantu jen ať
+// je čitelné, na co přesně se appka na daném místě ptá (vzhled bodu na
+// mapě, ne obecné chování formulářů).
 const MAP_LURE_LOOK_TYPES = ['privlac', 'muska']
 const TYPE_CATEGORY = { kapr: 'bila', privlac: 'dravec', muska: 'dravec', plavana: 'bila', jine: null }
 
@@ -3416,6 +3422,32 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
   }
 
+  // Appka vrátí seznam jmen nástrah zapsaných na daném prutu -- appka
+  // preferuje pole `baits` (víc nástrah na jednom prutu), a jen pokud
+  // appka žádné nenajde, spadne na starší jednotné pole `bait`.
+  function rodBaitNames(rod) {
+    if (!rod) return []
+    if (rod.baits && rod.baits.length) return rod.baits.map((b) => (b.name || '').trim()).filter(Boolean)
+    return rod.bait ? [rod.bait.trim()].filter(Boolean) : []
+  }
+
+  // Appka spočítá nejčastěji zapsané druhy ryb NAPŘÍČ výpravami STEJNÉHO
+  // typu (appka např. u kaprařiny nabídne druhy zapsané na jiných
+  // kaprových výpravách party -- na přívlači/mušce zase dravce). Appka
+  // vrací max `limit` jmen, seřazených od nejčastějšího.
+  function topSpeciesForType(sessionType, limit = 6) {
+    const counts = new Map()
+    sessions.forEach((s) => {
+      if (s.type !== sessionType) return
+      ;(s.catches || []).forEach((c) => {
+        const name = (c.species || '').trim()
+        if (!name) return
+        counts.set(name, (counts.get(name) || 0) + 1)
+      })
+    })
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([name]) => name)
+  }
+
   function allKnownSpecies() {
     const set = new Set()
     sessions.forEach((s) => {
@@ -5154,6 +5186,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           baitCategory={baitCategoryFor(activeSession.type)}
           onAddBait={addBaitToCatalog}
           locationsCatalog={locationsCatalog}
+          topSpecies={topSpeciesForType(activeSession.type)}
         />
       )}
 
@@ -6874,11 +6907,27 @@ function SessionFormPanel({ draft, setDraft, onArmRod, onSave, onClose, baitPhot
   )
 }
 
-function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, onAddBait, locationsCatalog = [] }) {
+function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, onAddBait, locationsCatalog = [], topSpecies = [] }) {
   const [busy, setBusy] = useState(false)
   const [weatherBusy, setWeatherBusy] = useState(false)
   const [weatherError, setWeatherError] = useState(null)
   function set(field, value) { setDraft((d) => ({ ...d, [field]: value })) }
+
+  const isLure = LURE_TYPES.includes(session?.type)
+
+  // Kategorie appka odvodí přímo z názvu druhu (viz speciesCategory.js).
+  // Typ výpravy appka použije jen jako výchozí hodnotu, dokud druh
+  // nenapíšeš, a jako fallback, když appka druh nerozpozná (candidát na
+  // kaprovou výpravu ≠ automaticky bílá ryba). Appka guessuje znovu při
+  // každé změně druhu, ledaže sis kategorii u NEZNÁMÉHO druhu už ručně
+  // opravila (categoryManual) -- tu appka pak nepřepisuje sama.
+  useEffect(() => {
+    if (draft.categoryManual) return
+    const guess = guessCategoryFromSpecies(draft.species)
+    if (guess && guess !== draft.category) set('category', guess)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.species])
+  const speciesCategoryKnown = guessCategoryFromSpecies(draft.species) != null
 
   function handleBaitChange(value) {
     setDraft((d) => {
@@ -6889,6 +6938,34 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
       }
       return next
     })
+  }
+
+  // Appka zjistí, z jakého prutu/místa má nástrahu nabídnout: u
+  // přívlače/mušky appka bere jednu nástrahu celé výpravy (rods[0] --
+  // appka u těchhle typů žádný další prut nezobrazuje), jinak appka
+  // bere nástrahy z vybraného prutu (draft.rodId).
+  const candidateRod = isLure ? rods[0] : rods.find((r) => r.id === draft.rodId)
+  const candidateBaits = candidateRod
+    ? (candidateRod.baits && candidateRod.baits.length
+      ? candidateRod.baits.map((b) => (b.name || '').trim()).filter(Boolean)
+      : (candidateRod.bait ? [candidateRod.bait.trim()].filter(Boolean) : []))
+    : []
+
+  // U přívlače/mušky appka nabízí jednu nástrahu výpravy hned při
+  // otevření ticketu -- na rozdíl od kapra tu není žádný výběr prutu,
+  // který by autofill jinak spustil.
+  useEffect(() => {
+    if (!isLure || draft.bait) return
+    if (candidateBaits.length === 1) handleBaitChange(candidateBaits[0])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLure, session?.id])
+
+  function handleRodSelect(rodId) {
+    const rod = rods.find((r) => r.id === rodId)
+    const baits = rod
+      ? (rod.baits && rod.baits.length ? rod.baits.map((b) => (b.name || '').trim()).filter(Boolean) : (rod.bait ? [rod.bait.trim()].filter(Boolean) : []))
+      : []
+    setDraft((d) => ({ ...d, rodId, bait: baits.length === 1 ? baits[0] : '' }))
   }
 
   async function handleFetchWeather() {
@@ -6931,6 +7008,17 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.time])
 
+  // Appka odhad váhy z délky rovnou předvyplní (dřív šlo jen tlačítkem
+  // "Použít") -- jakmile ale do váhy jednou sáhneš rukou, `weightEstimated`
+  // appka nastaví na false a dál to nepřepisuje, i kdyby se délka ještě
+  // změnila.
+  useEffect(() => {
+    if (draft.weight && !draft.weightEstimated) return
+    const est = estimateWeightKg(draft.species, draft.length)
+    if (est != null) setDraft((d) => ({ ...d, weight: est, weightEstimated: true }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.species, draft.length])
+
   async function handleSubmit(e) {
     e.preventDefault()
     setBusy(true)
@@ -6951,21 +7039,32 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
           <form onSubmit={handleSubmit}>
             <p className="hint-text">Pozice: {draft.point.lat.toFixed(4)}, {draft.point.lng.toFixed(4)}</p>
             <label className="field-label">Druh ryby</label>
-            <input className="text-input" required value={draft.species} onChange={(e) => set('species', e.target.value)} placeholder="Kapr obecný" />
+            {topSpecies.length > 0 && (
+              <div className="chip-row" style={{ marginBottom: 6 }}>
+                {topSpecies.map((s) => (
+                  <button key={s} type="button" className={`chip-btn ${draft.species === s ? 'active' : ''}`} onClick={() => set('species', s)}>{s}</button>
+                ))}
+              </div>
+            )}
+            <input className="text-input" required value={draft.species} onChange={(e) => set('species', e.target.value)} placeholder="jiný druh…" />
+            {/* Appka kategorii (dravec/bílá) odvodí z druhu potichu sama --
+                select mizí. Jen když druh nerozpozná appka ukáže drobný
+                přepínač, ať jde kategorii opravit ručně místo hádání. */}
+            {draft.species && !speciesCategoryKnown && (
+              <div className="chip-row" style={{ marginTop: 4, marginBottom: 4 }}>
+                <button type="button" className={`chip-btn ${draft.category === 'dravec' ? 'active' : ''}`} onClick={() => setDraft((d) => ({ ...d, category: 'dravec', categoryManual: true }))}>Dravec</button>
+                <button type="button" className={`chip-btn ${draft.category === 'bila' ? 'active' : ''}`} onClick={() => setDraft((d) => ({ ...d, category: 'bila', categoryManual: true }))}>Bílá ryba</button>
+              </div>
+            )}
             <label className="field-label">Revír / lokalita</label>
             <input className="text-input" value={draft.revir} onChange={(e) => set('revir', e.target.value)} placeholder="např. Labe 19" />
-            <label className="field-label">Kategorie</label>
-            <select className="text-input" value={draft.category} onChange={(e) => set('category', e.target.value)}>
-              <option value="dravec">Dravec</option>
-              <option value="bila">Bílá ryba</option>
-            </select>
             <div className="input-row">
               <div>
                 <label className="field-label">Délka (cm)</label>
                 <input className="text-input" type="number" value={draft.length} onChange={(e) => set('length', e.target.value)} />
               </div>
               <div>
-                <label className="field-label">Váha (kg)</label>
+                <label className="field-label">Váha (kg){draft.weightEstimated && draft.weight ? ' · odhad' : ''}</label>
                 <input className="text-input" type="number" step="0.1" value={draft.weight} onChange={(e) => setDraft((d) => ({ ...d, weight: e.target.value, weightEstimated: false }))} />
               </div>
               <div className="input-row-auto">
@@ -6973,12 +7072,9 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
                 <input className="text-input" type="time" value={draft.time} onChange={(e) => set('time', e.target.value)} />
               </div>
             </div>
-            {!draft.weight && draft.length && hasWeightEstimate(draft.species) && estimateWeightKg(draft.species, draft.length) != null && (
+            {draft.weightEstimated && draft.weight != null && draft.weight !== '' && (
               <p className="hint-text" style={{ marginTop: -6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <IconApprox size={14} /> Odhad z délky: {estimateWeightKg(draft.species, draft.length)} kg
-                <button type="button" className="new-btn" style={{ marginLeft: 4 }} onClick={() => setDraft((d) => ({ ...d, weight: estimateWeightKg(draft.species, draft.length), weightEstimated: true }))}>
-                  Použít
-                </button>
+                <IconApprox size={14} /> Odhad z délky -- uprav, pokud jsi rybu zvážil.
               </p>
             )}
             <button type="button" className="new-btn" onClick={handleFetchWeather} disabled={weatherBusy} style={{ marginBottom: 8 }}>
@@ -6997,6 +7093,13 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
               </p>
             )}
             <label className="field-label">Nástraha</label>
+            {!draft.bait && candidateBaits.length > 1 && (
+              <div className="chip-row" style={{ marginBottom: 6 }}>
+                {candidateBaits.map((b) => (
+                  <button key={b} type="button" className="chip-btn" onClick={() => handleBaitChange(b)}>{b}</button>
+                ))}
+              </div>
+            )}
             <BaitPicker
               value={draft.bait}
               category={baitCategory}
@@ -7016,10 +7119,10 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
               <input type="file" accept="image/*" hidden onChange={(e) => set('photoFile', e.target.files[0])} />
             </label>
             <br />
-            {rods.length > 0 && !LURE_TYPES.includes(session?.type) && (
+            {rods.length > 0 && !isLure && (
               <>
                 <label className="field-label">Prut</label>
-                <select className="text-input" value={draft.rodId} onChange={(e) => set('rodId', e.target.value)}>
+                <select className="text-input" value={draft.rodId} onChange={(e) => handleRodSelect(e.target.value)}>
                   <option value="">— nevybráno —</option>
                   {rods.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
