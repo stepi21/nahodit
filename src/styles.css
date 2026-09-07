@@ -68,7 +68,7 @@ body{
    height na <input> appce nepřebije -- appka proto zúží i vnitřní
    části ovládacího prvku, ať appce sedí přesně na stejnou výšku
    jako čísla vedle. */
-.text-input[type="time"]{ display:flex; align-items:center; }
+.text-input[type="time"]{ display:flex; align-items:center; -webkit-appearance:none; appearance:none; }
 .text-input[type="time"]::-webkit-datetime-edit{ padding:0; line-height:18px; }
 .text-input[type="time"]::-webkit-datetime-edit-fields-wrapper{ padding:0; }
 .text-input[type="time"]::-webkit-calendar-picker-indicator{ padding:0; margin:0 0 0 4px; }
