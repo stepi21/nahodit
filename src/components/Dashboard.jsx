@@ -734,13 +734,38 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         }
       }
 
+      // --- ČHМÚ stanice appka bere podle NEJPOUŽÍVANĚJŠÍ potvrzené
+      // stanice u výprav (pole water_stations se plní, když appka
+      // pro dané místo ručně potvrdíš stanici -- ta může být na jiné
+      // řece, než by vyšla čistě podle vzdušné vzdálenosti, typicky
+      // u soutoků/souběžných toků). Appka podle GPS hledá jen jako
+      // záložní variantu, když ještě žádná stanice u žádné výpravy
+      // potvrzená není.
+      const stationCounts = {}
+      sessionsData.forEach((s) => {
+        (s.water_stations || []).forEach((ws) => {
+          if (!ws.station_id) return
+          if (!stationCounts[ws.station_id]) stationCounts[ws.station_id] = { count: 0, name: ws.station_name }
+          stationCounts[ws.station_id].count += 1
+        })
+      })
+      const mostUsed = Object.entries(stationCounts).sort((a, b) => b[1].count - a[1].count)[0]
+
       let stationLabel = null
       let spaLevelToday = null
       try {
-        const stations = await findNearestStations(ref.lat, ref.lng, 1)
-        if (stations[0]) {
-          stationLabel = stations[0].stream ? `${stations[0].name} (${stations[0].stream})` : stations[0].name
-          const cond = await fetchLiveConditions(stations[0].objID)
+        let objID = mostUsed?.[0]
+        if (objID) {
+          stationLabel = mostUsed[1].name
+        } else {
+          const stations = await findNearestStations(ref.lat, ref.lng, 1)
+          if (stations[0]) {
+            objID = stations[0].objID
+            stationLabel = stations[0].stream ? `${stations[0].name} (${stations[0].stream})` : stations[0].name
+          }
+        }
+        if (objID) {
+          const cond = await fetchLiveConditions(objID)
           spaLevelToday = cond?.spa_level ?? null
         }
       } catch {
