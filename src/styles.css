@@ -80,10 +80,13 @@ body{
    vlastní bezpečné velikosti, ať appka nemůže dojít k přetečení. */
 .input-row > div.input-row-auto{ flex:0 0 auto; }
 .text-input[type="time"], .text-input[type="date"]{ width:auto; min-width:118px; }
-/* Krátká číselná pole (délka/váha úlovku) -- appka je nechá úzká podle
-   pár číslic obsahu, místo aby appka nechala flex:1 roztáhnout je
-   nepoměrně široko vedle vedlejšího pole "Čas". */
-.field-compact{ flex:0 0 74px !important; }
+/* V řádku o 3 sloupcích (Datum/Od/Do, Délka/Váha/Čas) appka chce
+   všechny tři dohromady přesně na šířku řádku nad/pod -- appka proto
+   tady width:auto/min-width přebije zpátky na plnou šířku sloupce
+   (vyšší specificita než pravidlo výš, appka appce vyhraje bez ohledu
+   na pořadí v souboru). */
+.input-row .text-input[type="time"],
+.input-row .text-input[type="date"]{ width:100%; min-width:0; }
 
 .btn-primary{
   margin-top:18px; width:100%; padding:11px; border:none; border-radius:8px;
