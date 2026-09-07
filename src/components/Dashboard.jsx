@@ -6132,9 +6132,11 @@ function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onReloca
                 )}
               </>
             )}
-            <label className="field-label">Datum</label>
-            <input className="text-input" type="date" required value={draft.date} onChange={(e) => set('date', e.target.value)} />
             <div className="input-row">
+              <div>
+                <label className="field-label">Datum</label>
+                <input className="text-input" type="date" required value={draft.date} onChange={(e) => set('date', e.target.value)} />
+              </div>
               <div>
                 <label className="field-label">Od</label>
                 <input className="text-input" type="time" value={draft.timeFrom} onChange={(e) => set('timeFrom', e.target.value)} />
@@ -6765,9 +6767,11 @@ function SessionFormPanel({ draft, setDraft, onArmRod, onSave, onClose, baitPhot
                 )}
               </>
             )}
-            <label className="field-label">Datum</label>
-            <input className="text-input" type="date" required value={draft.date} onChange={(e) => set('date', e.target.value)} />
             <div className="input-row">
+              <div>
+                <label className="field-label">Datum</label>
+                <input className="text-input" type="date" required value={draft.date} onChange={(e) => set('date', e.target.value)} />
+              </div>
               <div>
                 <label className="field-label">Od</label>
                 <input className="text-input" type="time" value={draft.timeFrom} onChange={(e) => set('timeFrom', e.target.value)} />
