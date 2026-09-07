@@ -4386,8 +4386,13 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                 </div>
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 'var(--fs-sm2)', color: 'var(--ink-soft)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <IconCalendar size={13} /> {activeSession.session_date}{activeSession.time_from ? ` · ${activeSession.time_from}–${activeSession.time_to || '?'}` : ''}
-                  {crossesMidnight(activeSession.time_from, activeSession.time_to) && ` 🌙 (${formatDurationHM(sessionDurationMinutes(activeSession))})`}
+                  {crossesMidnight(activeSession.time_from, activeSession.time_to) && ' 🌙'}
                 </div>
+                {sessionDurationMinutes(activeSession) != null && (
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 'var(--fs-sm2)', color: 'var(--ink-soft)', marginTop: 2 }}>
+                    trvání {formatDurationHM(sessionDurationMinutes(activeSession))}
+                  </div>
+                )}
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', marginTop: 2 }}>
                   Zapsal: {userName(activeSession.user_id)}
                 </div>
@@ -5169,6 +5174,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           onSaveLocation={startSaveLocation}
           onPersistStation={persistStationChoice}
           onZoomToPoint={(lat, lng) => mapInstance.current?.setView([lat, lng], 15)}
+          topSpecies={topSpeciesForType(draftSession.type)}
         />
       )}
 
@@ -5251,6 +5257,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           onManageAreas={() => startManageAreas(sessions.find((s) => s.id === editingSession.id))}
           locationsCatalog={locationsCatalog}
           onPersistStation={persistStationChoice}
+          topSpecies={topSpeciesForType(editingSession.type)}
         />
       )}
 
@@ -5985,7 +5992,7 @@ function StatsModal({ sessions: allSessions, members, userColor, statsSince }) {
   )
 }
 
-function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onRelocate, onManageAreas, locationsCatalog = [], onPersistStation }) {
+function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onRelocate, onManageAreas, locationsCatalog = [], onPersistStation, topSpecies = [] }) {
   useLockBodyScroll()
   const [busy, setBusy] = useState(false)
   const [weatherBusy, setWeatherBusy] = useState(false)
@@ -6100,15 +6107,13 @@ function SessionEditModal({ draft, setDraft, onSave, onClose, onDelete, onReloca
             {LURE_TYPES.includes(draft.type) && (
               <>
                 <label className="field-label">Cíl (nepovinné)</label>
-                <label className="location-check-row" style={{ marginBottom: 6 }}>
-                  <input
-                    type="checkbox"
-                    checked={draft.target_species === 'Obecně dravci'}
-                    onChange={(e) => set('target_species', e.target.checked ? 'Obecně dravci' : '')}
-                  />
-                  Obecně dravci
-                </label>
-                {draft.target_species !== 'Obecně dravci' && (
+                <div className="chip-row" style={{ marginBottom: 6 }}>
+                  <button type="button" className={`chip-btn ${draft.target_species === 'Obecně dravci' ? 'active' : ''}`} onClick={() => set('target_species', draft.target_species === 'Obecně dravci' ? '' : 'Obecně dravci')}>Obecně dravci</button>
+                  {topSpecies.map((s) => (
+                    <button key={s} type="button" className={`chip-btn ${draft.target_species === s ? 'active' : ''}`} onClick={() => set('target_species', draft.target_species === s ? '' : s)}>{s}</button>
+                  ))}
+                </div>
+                {draft.target_species !== 'Obecně dravci' && !topSpecies.includes(draft.target_species) && (
                   <input
                     className="text-input"
                     value={draft.target_species || ''}
@@ -6512,7 +6517,7 @@ function RodEditRow({ rod, color, baitPhotoMap = {}, baitListId = 'known-baits-a
   )
 }
 
-function SessionFormPanel({ draft, setDraft, onArmRod, onSave, onClose, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, onAddBait, onStartAddArea, locationsCatalog = [], onSaveLocation, onPersistStation, onZoomToPoint }) {
+function SessionFormPanel({ draft, setDraft, onArmRod, onSave, onClose, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, onAddBait, onStartAddArea, locationsCatalog = [], onSaveLocation, onPersistStation, onZoomToPoint, topSpecies = [] }) {
   useLockBodyScroll()
   const [busy, setBusy] = useState(false)
   const [weatherBusy, setWeatherBusy] = useState(false)
@@ -6737,15 +6742,13 @@ function SessionFormPanel({ draft, setDraft, onArmRod, onSave, onClose, baitPhot
             {LURE_TYPES.includes(draft.type) && (
               <>
                 <label className="field-label">Cíl (nepovinné)</label>
-                <label className="location-check-row" style={{ marginBottom: 6 }}>
-                  <input
-                    type="checkbox"
-                    checked={draft.target_species === 'Obecně dravci'}
-                    onChange={(e) => set('target_species', e.target.checked ? 'Obecně dravci' : '')}
-                  />
-                  Obecně dravci
-                </label>
-                {draft.target_species !== 'Obecně dravci' && (
+                <div className="chip-row" style={{ marginBottom: 6 }}>
+                  <button type="button" className={`chip-btn ${draft.target_species === 'Obecně dravci' ? 'active' : ''}`} onClick={() => set('target_species', draft.target_species === 'Obecně dravci' ? '' : 'Obecně dravci')}>Obecně dravci</button>
+                  {topSpecies.map((s) => (
+                    <button key={s} type="button" className={`chip-btn ${draft.target_species === s ? 'active' : ''}`} onClick={() => set('target_species', draft.target_species === s ? '' : s)}>{s}</button>
+                  ))}
+                </div>
+                {draft.target_species !== 'Obecně dravci' && !topSpecies.includes(draft.target_species) && (
                   <input
                     className="text-input"
                     value={draft.target_species || ''}
@@ -7059,21 +7062,21 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
             <label className="field-label">Revír / lokalita</label>
             <input className="text-input" value={draft.revir} onChange={(e) => set('revir', e.target.value)} placeholder="např. Labe 19" />
             <div className="input-row">
-              <div>
+              <div className="input-row-auto field-compact">
                 <label className="field-label">Délka (cm)</label>
                 <input className="text-input" type="number" value={draft.length} onChange={(e) => set('length', e.target.value)} />
               </div>
-              <div>
-                <label className="field-label">Váha (kg){draft.weightEstimated && draft.weight ? ' · odhad' : ''}</label>
+              <div className="input-row-auto field-compact">
+                <label className="field-label">Váha (kg)</label>
                 <input className="text-input" type="number" step="0.1" value={draft.weight} onChange={(e) => setDraft((d) => ({ ...d, weight: e.target.value, weightEstimated: false }))} />
               </div>
-              <div className="input-row-auto">
+              <div>
                 <label className="field-label">Čas</label>
                 <input className="text-input" type="time" value={draft.time} onChange={(e) => set('time', e.target.value)} />
               </div>
             </div>
             {draft.weightEstimated && draft.weight != null && draft.weight !== '' && (
-              <p className="hint-text" style={{ marginTop: -6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <p className="hint-text" style={{ marginTop: 6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <IconApprox size={14} /> Odhad z délky -- uprav, pokud jsi rybu zvážil.
               </p>
             )}
@@ -7106,7 +7109,6 @@ function CatchFormPanel({ draft, setDraft, rods, session, onSave, onClose, baitP
               catalog={baitCatalog}
               onChange={handleBaitChange}
               onAddBait={onAddBait}
-              placeholder="boilie tuňák 20mm"
             />
             <label className="photo-label" style={{ display: 'inline-block', marginTop: 4, marginRight: 8 }}>
               <IconCamera size={13} />{' '}{draft.baitPhotoFile ? draft.baitPhotoFile.name : (draft.bait_photo_url ? 'nalezeno z historie' : 'foto nástrahy')}
