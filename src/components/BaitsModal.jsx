@@ -267,7 +267,7 @@ function AddBaitForm({ groupId, userId, onCancel, onSaved }) {
   }
 
   return (
-    <div className="modal-bg show" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="side-panel">
       <div className="ticket" style={{ maxWidth: 380 }}>
         <div className="ticket-top">
           <button className="ticket-close" onClick={onCancel}><IconClose size={16} /></button>
@@ -337,7 +337,7 @@ function EditBaitForm({ bait, groupId, userId, onRenamePropagate, onBackfillBait
   }
 
   return (
-    <div className="modal-bg show" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="side-panel">
       <div className="ticket" style={{ maxWidth: 380 }}>
         <div className="ticket-top">
           <button className="ticket-close" onClick={onCancel}><IconClose size={16} /></button>
