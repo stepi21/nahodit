@@ -89,6 +89,17 @@ body{
 }
 .tab-btn.active{ background:var(--water-deep); color:var(--white); border-color:var(--water-deep); }
 
+/* Rychlé tappable chipy -- druh ryby / kategorie fallback / nástraha
+   z prutu -- appka je drží menší a lehčí než .tab-btn (nejsou to
+   přepínače obrazovky, jen návrhy, co jinak zapíšeš do textového pole). */
+.chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip-btn{
+  padding:5px 10px; border:1px solid var(--paper-line); background:var(--white);
+  border-radius:999px; font-size:var(--fs-sm2); font-family:'IBM Plex Mono', monospace;
+  cursor:pointer; color:var(--ink-soft);
+}
+.chip-btn.active{ background:var(--amber-deep); color:var(--white); border-color:var(--amber-deep); }
+
 /* ---------- app shell ---------- */
 .app{ display:flex; flex-direction:column; min-height:100vh; }
 /* Appka v běžné záložce prohlížeče (Chrome/Safari, NE appka na ploše)
