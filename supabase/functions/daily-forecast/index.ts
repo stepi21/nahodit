@@ -179,6 +179,18 @@ async function fetchTodaySpaLevel(station: any): Promise<number | null> {
   }
 }
 
+function mostUsedStationId(sessionsData: any[]): string | null {
+  const counts: Record<string, number> = {};
+  sessionsData.forEach((s: any) => {
+    (s.water_stations || []).forEach((ws: any) => {
+      if (!ws.station_id) return;
+      counts[ws.station_id] = (counts[ws.station_id] || 0) + 1;
+    });
+  });
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return entries.length ? entries[0][0] : null;
+}
+
 async function sendPush(groupId: string, title: string, body: string) {
   await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
     method: "POST",
@@ -207,10 +219,13 @@ Deno.serve(async (_req: Request) => {
       let spaLevelToday: number | null = null;
       try {
         const stations = await fetchChmiStations();
-        const nearest = stations
-          .map((s: any) => ({ ...s, distanceKm: haversineKm(ref.lat, ref.lng, s.lat, s.lng) }))
-          .sort((a: any, b: any) => a.distanceKm - b.distanceKm)[0];
-        if (nearest) spaLevelToday = await fetchTodaySpaLevel(nearest);
+        const usedId = mostUsedStationId(sessionsData);
+        const station = usedId
+          ? stations.find((s: any) => String(s.objID) === String(usedId))
+          : stations
+              .map((s: any) => ({ ...s, distanceKm: haversineKm(ref.lat, ref.lng, s.lat, s.lng) }))
+              .sort((a: any, b: any) => a.distanceKm - b.distanceKm)[0];
+        if (station) spaLevelToday = await fetchTodaySpaLevel(station);
       } catch {
         // ČHМÚ appka nesehnala -- appka jede dál bez vodního stavu.
       }
