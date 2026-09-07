@@ -10,26 +10,46 @@ import { useEffect } from 'react'
 //
 // Pouziti: v komponente panelu jen zavolej useLockBodyScroll() -- zamkne
 // se pri prvnim vykresleni, odemkne se pri zavreni/zmizeni panelu.
+//
+// Appka drzi pocet aktivne "zamykajicich" panelu v modulove promenne
+// (LOCK_COUNT) -- kdyz appka na sebe naskladá dva panely najednou
+// (typicky: nedopatřením zůstane pod appkou vykreslený i předchozí
+// panel, co se ještě nestihl odmountovat), KAŽDÝ z nich dřív při svém
+// zavření appku odemkl -- i když ten druhý appku pořád potřeboval
+// zamčenou. Appka pak nechala tělo stránky v "position:fixed" bez
+// vizuálního panelu nad tím, což na dotyk vypadalo jako appka "nereaguje
+// na kliky" (klik dopadl na zamčené neviditelné tělo stránky, ne na
+// tlačítko pod prstem). Appka teď zamyká/odemyká jen při přechodu
+// 0→1 a 1→0 -- vnořené/souběžné panely appce sdílí jeden zámek.
+let LOCK_COUNT = 0
+let SAVED_STYLE = null
+let SAVED_SCROLL_Y = 0
+
 export function useLockBodyScroll() {
   useEffect(() => {
-    const scrollY = window.scrollY
     const body = document.body
-    const prevPosition = body.style.position
-    const prevTop = body.style.top
-    const prevWidth = body.style.width
-    const prevOverflow = body.style.overflow
-
-    body.style.position = 'fixed'
-    body.style.top = `-${scrollY}px`
-    body.style.width = '100%'
-    body.style.overflow = 'hidden'
+    if (LOCK_COUNT === 0) {
+      SAVED_SCROLL_Y = window.scrollY
+      SAVED_STYLE = {
+        position: body.style.position, top: body.style.top,
+        width: body.style.width, overflow: body.style.overflow,
+      }
+      body.style.position = 'fixed'
+      body.style.top = `-${SAVED_SCROLL_Y}px`
+      body.style.width = '100%'
+      body.style.overflow = 'hidden'
+    }
+    LOCK_COUNT += 1
 
     return () => {
-      body.style.position = prevPosition
-      body.style.top = prevTop
-      body.style.width = prevWidth
-      body.style.overflow = prevOverflow
-      window.scrollTo(0, scrollY)
+      LOCK_COUNT -= 1
+      if (LOCK_COUNT > 0) return // appka drzi zamek dal -- jiny panel ho pořád potřebuje
+      body.style.position = SAVED_STYLE.position
+      body.style.top = SAVED_STYLE.top
+      body.style.width = SAVED_STYLE.width
+      body.style.overflow = SAVED_STYLE.overflow
+      window.scrollTo(0, SAVED_SCROLL_Y)
+      SAVED_STYLE = null
       // Appka na Mapě (a jiném "plovoucím" layoutu) vynucuje na .app
       // pevné min-height:100dvh (viz styles.css), ať appka na krátkém
       // obsahu (prázdná mapa) pořád sahá přesně na doraz obrazovky.
