@@ -423,9 +423,9 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
 
 
-  function showToast(message, variant = 'default') {
-    setToast({ message, variant })
-    setTimeout(() => setToast(null), variant === 'record' ? 3400 : 2200)
+  function showToast(message, variant = 'default', kind = null) {
+    setToast({ message, variant, kind })
+    setTimeout(() => setToast(null), variant === 'record' ? 5000 : 2200)
   }
 
   // Appka appce spočítá, jestli nový úlovek překonává dosavadní osobní
@@ -2822,21 +2822,18 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       const recordType = detectNewRecord(sessions, c.species, c.length)
       setDraftCatch(null)
       await loadSessions()
-      if (recordType === 'party') {
+      if (recordType === 'party' || recordType === 'personal') {
+        const isParty = recordType === 'party'
         showToast(
           <>
-            <div className="save-toast-title"><IconTrophy size={16} color="#fff" /> Nový rekord party</div>
-            <div className="save-toast-sub">{c.species} · {c.length} cm</div>
+            <div className="save-toast-icon-badge">
+              <IconTrophy size={34} color={isParty ? 'var(--amber-deep)' : 'var(--water-deep)'} />
+            </div>
+            <div className="save-toast-record-title">{isParty ? 'Rekord party' : 'Osobní rekord'}</div>
+            <div className="save-toast-record-sub">{c.species} · {c.length} cm</div>
           </>,
-          'record'
-        )
-      } else if (recordType === 'personal') {
-        showToast(
-          <>
-            <div className="save-toast-title"><IconTrophy size={16} color="#fff" /> Nový osobní rekord</div>
-            <div className="save-toast-sub">{c.species} · {c.length} cm</div>
-          </>,
-          'record'
+          'record',
+          recordType
         )
       } else {
         showToast('✓ Úlovek uložen')
@@ -5431,7 +5428,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           onDeleted={() => { setTicketCatch(null); loadSessions() }}
         />
       )}
-      {toast && <div className={`save-toast ${toast.variant === 'record' ? 'save-toast-record' : ''}`}>{toast.message}</div>}
+      {toast && <div className={`save-toast ${toast.variant === 'record' ? `save-toast-record save-toast-${toast.kind}` : ''}`}>{toast.message}</div>}
     </div>
   )
 }
