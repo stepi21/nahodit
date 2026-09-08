@@ -9,7 +9,7 @@ import { guessCategoryFromSpecies } from '../lib/speciesCategory.js'
 import { actualDateForTime } from '../lib/sessionTime.js'
 import { useLockBodyScroll } from '../lib/useLockBodyScroll.js'
 import BaitPicker from './BaitPicker.jsx'
-import { IconClose, IconArrowLeft, IconEdit, IconTrash, IconCamera, IconRevir, IconCalendar, IconThermometer, IconGauge, IconWind, IconMoonPhase, IconDroplet, IconRefresh, IconPressureTrend, IconApprox } from '../lib/icons.jsx'
+import { IconClose, IconArrowLeft, IconEdit, IconTrash, IconCamera, IconRevir, IconThermometer, IconGauge, IconWind, IconMoonPhase, IconDroplet, IconRiverAuto, IconRefresh, IconPressureTrend, IconApprox } from '../lib/icons.jsx'
 
 const CATEGORY_COLOR = { dravec: '#5C7A85', bila: '#C4A572' }
 
@@ -269,6 +269,7 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
                   <img src={c.bait_photo_url} alt="nástraha" style={{ maxHeight: 90, borderRadius: 8, cursor: 'zoom-in' }} onClick={() => setFullscreenIndex(photos.findIndex((p) => p.url === c.bait_photo_url))} />
                 </div>
               )}
+              <div className="ticket-line"><span className="lab">Datum</span><span className="val">{session?.session_date || c.caught_at?.slice(0, 10) || '—'}</span></div>
               <div className="ticket-line"><span className="lab">Čas úlovku</span><span className="val">{c.caught_at ? new Date(c.caught_at).toLocaleTimeString('cs-CZ') : '—'}</span></div>
               <div className="ticket-line">
                 <span className="lab">Lokace</span>
@@ -280,28 +281,42 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
                   <span className="val link-val" style={{ fontFamily: 'inherit', fontWeight: 600 }} onClick={onOpenSession}>{session.title} →</span>
                 </div>
               )}
-              {(c.weather_temp_c != null || session) && (
-                <div className="conditions-strip">
-                  <span className="cond-chip"><IconCalendar size={12} /> {session?.session_date || c.caught_at?.slice(0, 10)}</span>
-                  <span className="cond-chip">{(() => { const phase = moonPhaseName(session?.session_date || c.caught_at?.slice(0, 10)); return <><IconMoonPhase phase={phase} size={13} /> {phase}</> })()}</span>
-                  <span className="cond-chip cond-weather"><IconThermometer size={12} /> {c.weather_temp_c ?? session?.weather_temp_c ?? '—'}°C</span>
-                  <span className="cond-chip cond-weather">
-                    <IconGauge size={12} /> {c.weather_pressure_hpa ?? session?.weather_pressure_hpa ?? '—'} hPa
-                    <IconPressureTrend trend={c.weather_pressure_trend ?? session?.weather_pressure_trend} size={12} />
-                  </span>
-                  <span className="cond-chip cond-weather"><IconWind size={12} /> {c.weather_wind || session?.weather_wind || '—'}</span>
-                  {(c.water_station_name || session?.water_station_name) && (
-                    <span className="cond-chip cond-water">
-                      <IconDroplet size={12} color="var(--water-mid)" /> {c.water_level_cm ?? session?.water_level_cm ?? '—'} cm · {c.water_flow_m3s ?? session?.water_flow_m3s ?? '—'} m³/s
-                      {(c.water_temp_c ?? session?.water_temp_c) != null ? ` · ${c.water_temp_c ?? session?.water_temp_c} °C` : ''}
-                      {(() => {
-                        const lvl = c.water_spa_level ?? session?.water_spa_level
-                        return lvl != null && SPA_LEVEL_INFO[lvl] ? ` · ${SPA_LEVEL_INFO[lvl].icon}` : ''
-                      })()}
-                    </span>
-                  )}
-                </div>
-              )}
+              {(c.weather_temp_c != null || session) && (() => {
+                const waterLevel = c.water_level_cm ?? session?.water_level_cm
+                const waterFlow = c.water_flow_m3s ?? session?.water_flow_m3s
+                const waterTemp = c.water_temp_c ?? session?.water_temp_c
+                const stationName = c.water_station_name || session?.water_station_name
+                const spaLevel = c.water_spa_level ?? session?.water_spa_level
+                return (
+                  <>
+                    <h3 className="section-title" style={{ marginTop: 14 }}>Podmínky</h3>
+                    <div className="ticket-stats stats-3 stats-weather">
+                      <div className="stat"><IconThermometer size={15} color="var(--amber-deep)" /><div className="num">{c.weather_temp_c ?? session?.weather_temp_c ?? '—'}°C</div><div className="lab">teplota</div></div>
+                      <div className="stat">
+                        <IconGauge size={15} color="var(--amber-deep)" />
+                        <div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>{c.weather_pressure_hpa ?? session?.weather_pressure_hpa ?? '—'} <IconPressureTrend trend={c.weather_pressure_trend ?? session?.weather_pressure_trend} size={12} /></div>
+                        <div className="lab">tlak hPa</div>
+                      </div>
+                      <div className="stat"><IconWind size={15} color="var(--amber-deep)" /><div className="num">{c.weather_wind || session?.weather_wind || '—'}</div><div className="lab">vítr</div></div>
+                    </div>
+                    {stationName && (
+                      <>
+                        <div className="ticket-stats stats-3 stats-water" style={{ marginTop: 7 }}>
+                          <div className="stat"><IconDroplet size={15} color="var(--water-mid)" /><div className="num">{waterLevel ?? '—'}</div><div className="lab">vodní stav cm</div></div>
+                          <div className="stat"><IconRiverAuto size={15} color="var(--water-mid)" /><div className="num">{waterFlow ?? '—'}</div><div className="lab">průtok m³/s</div></div>
+                          {waterTemp != null && <div className="stat"><IconThermometer size={15} color="var(--water-mid)" /><div className="num">{waterTemp}°C</div><div className="lab">teplota vody</div></div>}
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
+                          {stationName}{spaLevel != null && SPA_LEVEL_INFO[spaLevel] && ` · ${SPA_LEVEL_INFO[spaLevel].icon} ${SPA_LEVEL_INFO[spaLevel].label}`}
+                        </div>
+                      </>
+                    )}
+                    <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {(() => { const phase = moonPhaseName(session?.session_date || c.caught_at?.slice(0, 10)); return <><IconMoonPhase phase={phase} size={14} /> {phase}</> })()}
+                    </div>
+                  </>
+                )
+              })()}
               <p className="help-note" style={{ marginTop: 4 }}>
                 {c.weather_temp_c != null ? 'Počasí přesně pro čas úlovku.' : 'Počasí z výpravy — nemusí přesně odpovídat času tohoto úlovku.'}
               </p>
