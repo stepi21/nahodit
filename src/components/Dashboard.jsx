@@ -1005,8 +1005,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         // místo aby appka vycentrovala zpátky na pevný zoom.
         suppressSessionFitRef.current = true
         setPlacementTarget(null)
-        setActiveId(sid)
-        setViewMode('detail')
       })()
       return
     }
@@ -1026,8 +1024,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         await loadSessions()
         suppressSessionFitRef.current = true
         setPlacementTarget(null)
-        setActiveId(info.sessionId)
-        setViewMode('detail')
       })()
       return
     }
@@ -1053,7 +1049,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       setPlacementTarget(null)
       const s = activeSessionRef.current
       setDraftCatch({ point, species: '', category: TYPE_CATEGORY[s?.type] || 'dravec', length: '', weight: '', weightEstimated: false, bait: '', rodId: '', time: s?.status === 'in_progress' ? nowHHMM() : '', photoFile: null, baitPhotoFile: null, revir: s?.revir || '' })
-      if (s) { setActiveId(s.id); setViewMode('detail') }
       return
     }
 
@@ -1071,25 +1066,21 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
     if (target.startsWith('edit-rod-')) {
       const rodId = target.slice('edit-rod-'.length)
-      const sid = activeSessionRef.current?.id
       setPlacementTarget(null)
       supabase.from('rods').update({ lat: point.lat, lng: point.lng }).eq('id', rodId).then(({ error }) => {
         if (error) alert(error.message)
         else loadSessions()
       })
-      if (sid) { setActiveId(sid); setViewMode('detail') }
       return
     }
 
     if (target.startsWith('relocate-lure-place-')) {
       const rodId = target.slice('relocate-lure-place-'.length)
-      const sid = activeSessionRef.current?.id
       setPlacementTarget(null)
       supabase.from('rods').update({ lat: point.lat, lng: point.lng }).eq('id', rodId).then(({ error }) => {
         if (error) alert(error.message)
         else loadSessions()
       })
-      if (sid) { setActiveId(sid); setViewMode('detail') }
       return
     }
   }
@@ -2669,9 +2660,9 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       return
     }
     // Appka na výběr prutu appce ukáže vyskakovací nabídku (.type-picker) --
-    // appka ji appce vykresluje v nižší vrstvě než kartu výpravy, takže by
-    // appka appce zůstala schovaná pod ní, kdyby appka kartu nezavřela.
-    setViewMode('aggregate')
+    // ta appce patří pod mapNeededForInteraction, takže appka appce kartu
+    // výpravy jen dočasně schová (CSS), ne zavře -- rozpracovaná editace
+    // (pokud nějaká byla) appce zůstane netknutá.
     setCatchChoosing(true)
     setMobileSheetOpen(false)
   }
@@ -2680,11 +2671,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     setCatchChoosing(false)
     const knownPhoto = rod.bait ? baitPhotoLookup()[rod.bait.trim().toLowerCase()] : null
     setDraftCatch({ point: { lat: rod.lat, lng: rod.lng }, species: '', category: TYPE_CATEGORY[activeSession?.type] || 'dravec', length: '', weight: '', weightEstimated: false, bait: rod.bait || '', rodId: rod.id, time: activeSession?.status === 'in_progress' ? nowHHMM() : '', photoFile: null, baitPhotoFile: null, bait_photo_url: knownPhoto || null, revir: activeSession?.revir || '' })
-    // Appka kartu výpravy appce zase otevře pod formulářem (side-panel je
-    // appce vždycky navrchu, ať appka výprava byla otevřená nebo ne) --
-    // appka po uložení/zavření úlovku appce vrátí zpátky do výpravy, ne na
-    // holý seznam.
-    if (activeSession) setViewMode('detail')
   }
 
   function chooseCatchOnMap() {
@@ -2693,7 +2679,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       mapInstance.current?.setView([activeSession.lat, activeSession.lng], 18)
     }
     setPlacementTarget('catch-point')
-    setViewMode('aggregate')
   }
 
   async function saveSession() {
@@ -3068,7 +3053,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     if (session.lat != null && session.lng != null) mapInstance.current?.setView([session.lat, session.lng], 19)
     setMobileSheetOpen(false)
     setPlacementTarget('relocate-session-point')
-    setViewMode('aggregate')
   }
 
   // Appka doskočí ze detailu výpravy rovnou na záložku Mapa, ale appka
@@ -3108,7 +3092,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       mapInstance.current?.setView([session.lat, session.lng], 17)
     }
     setPlacementTarget('add-rod-to-session')
-    setViewMode('aggregate')
   }
 
   // U přívlače appka nástrahu ukládá jako jediný "prut" na stejné
@@ -3166,7 +3149,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     if (rod.lat != null && rod.lng != null) mapInstance.current?.setView([rod.lat, rod.lng], 19)
     setMobileSheetOpen(false)
     setPlacementTarget(`relocate-lure-place-${rod.id}`)
-    setViewMode('aggregate')
   }
 
   function startManageAreas(session) {
@@ -4385,7 +4367,11 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     }
     const closeTicketHome = () => { setTicketCatchReturn(null); setViewMode('aggregate') }
     return (
-      <div className="modal-bg show session-ticket-modal" onClick={(e) => e.target === e.currentTarget && closeTicket()}>
+      <div
+        className="modal-bg show session-ticket-modal"
+        style={mapNeededForInteraction ? { display: 'none' } : undefined}
+        onClick={(e) => e.target === e.currentTarget && closeTicket()}
+      >
         <div className="ticket" style={{ maxWidth: 460 }}>
           <div className="ticket-mobile-backbar">
             <button type="button" onClick={closeTicket}><IconArrowLeft size={16} /> Zpět</button>
@@ -4487,7 +4473,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                   onArmPosition={() => {
                     if (r.lat != null && r.lng != null) mapInstance.current?.setView([r.lat, r.lng], 19)
                     setPlacementTarget(`edit-rod-${r.id}`)
-                    setViewMode('aggregate')
                   }}
                   onDone={() => { setEditingRodId(null); loadSessions() }}
                   onCancel={() => setEditingRodId(null)}
