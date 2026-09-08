@@ -5,7 +5,7 @@ import { supabase } from '../supabaseClient'
 import CatchTicket from './CatchTicket.jsx'
 import HelpModal from './HelpModal.jsx'
 import BaitsModal, { computeBaitsList } from './BaitsModal.jsx'
-import { IconVyprava, IconRevir, IconNastraha, IconUlovek, IconMenu, IconTrophy, IconChart, IconDownload, IconHelp, IconSettings, IconEdit, IconTrash, IconCamera, IconCalendar, IconDuplicate, IconTarget, IconThermometer, IconGauge, IconDroplet, IconWind, IconCheck, IconClose, IconSearch, IconMapEdit, IconBookmark, IconLive, IconZoom, IconRefresh, IconTrend, IconOffline, IconLocate, IconMoonPhase, IconPressureTrend, IconBoat, IconRiverAuto, IconBell, IconHome, IconMap, IconClock, IconApprox } from '../lib/icons.jsx'
+import { IconVyprava, IconRevir, IconNastraha, IconUlovek, IconMenu, IconTrophy, IconChart, IconDownload, IconHelp, IconSettings, IconEdit, IconTrash, IconCamera, IconCalendar, IconDuplicate, IconTarget, IconThermometer, IconGauge, IconDroplet, IconWind, IconCheck, IconClose, IconSearch, IconMapEdit, IconBookmark, IconLive, IconZoom, IconRefresh, IconTrend, IconOffline, IconLocate, IconMoonPhase, IconPressureTrend, IconBoat, IconRiverAuto, IconBell, IconHome, IconMap, IconClock, IconApprox, IconArrowLeft } from '../lib/icons.jsx'
 import BaitPicker from './BaitPicker.jsx'
 import LocationsModal from './LocationsModal.jsx'
 import { fetchWeather, moonPhaseName } from '../lib/weather.js'
@@ -311,16 +311,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   const [baitsStartAdding, setBaitsStartAdding] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false) // "☰ Více" — méně časté akce schované z hlavičky
   const moreMenuRef = useRef(null)
-  const [showSessionMenu, setShowSessionMenu] = useState(false) // "⋯" u detailu výpravy — appka sem schovává "Nová jako tahle" / "Přesunout bod" / "Upravit výpravu", ať appka nemá v hlavičce detailu 4 tlačítka najednou ("Zobrazit na mapě" appka úplně zrušila -- k tomu slouží klikací mini-mapka hned pod tím)
-  const sessionMenuRef = useRef(null)
-  useEffect(() => {
-    if (!showSessionMenu) return
-    function handleClickOutside(e) {
-      if (sessionMenuRef.current && !sessionMenuRef.current.contains(e.target)) setShowSessionMenu(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showSessionMenu])
   useEffect(() => {
     if (!showMoreMenu) return
     function handleClickOutside(e) {
@@ -4361,216 +4351,215 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     )
   }
 
-  function renderDetailStrip() {
+  function renderSessionTicket() {
+    if (!(activeSession && viewMode === 'detail' && !draftSession)) return null
+    const s = activeSession
+    const isLure = LURE_TYPES.includes(s.type)
+    const closeTicket = () => setViewMode('aggregate')
     return (
-          activeSession && viewMode === 'detail' && !draftSession && (
-            <div className="detail-strip">
-              {activeSession.status === 'in_progress' && (
-                <div className="live-banner" style={{ gridColumn: '1 / -1' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconLive size={14} /> Výprava právě probíhá</span>
-                  {canEdit && <button className="new-btn" onClick={() => endLiveSession(activeSession)}>Ukončit výpravu</button>}
-                </div>
-              )}
-              <div className="det-block">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-                  <h3>Podmínky</h3>
-                  <div style={{ position: 'relative' }} ref={sessionMenuRef}>
-                    <button className="new-btn hamburger-btn" onClick={() => setShowSessionMenu((v) => !v)} title="Další možnosti">
-                      <IconMenu size={16} color="var(--water-deep)" />
-                    </button>
-                    {showSessionMenu && (
-                      <div className="type-picker" style={{ position: 'absolute', top: '100%', right: 0, left: 'auto', transform: 'none', marginTop: 6, minWidth: 200, paddingTop: 10, zIndex: 950 }}>
-                        <button className="type-btn" onClick={() => { setShowSessionMenu(false); duplicateSession(activeSession) }}><IconDuplicate size={14} /> Nová jako tahle</button>
-                        {canEdit && !LURE_TYPES.includes(activeSession.type) && (
-                          <button className="type-btn" onClick={() => { setShowSessionMenu(false); startRelocateFromCard(activeSession) }}><IconRevir size={14} /> Přesunout bod</button>
-                        )}
-                        {canEdit && (
-                          <button className="type-btn" onClick={() => { setShowSessionMenu(false); startEditSession(activeSession) }}><IconEdit size={14} /> Upravit výpravu</button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 'var(--fs-sm2)', color: 'var(--ink-soft)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <IconCalendar size={13} /> {activeSession.session_date}{activeSession.time_from ? ` · ${activeSession.time_from}–${activeSession.time_to || '?'}` : ''}
-                  {crossesMidnight(activeSession.time_from, activeSession.time_to) && ' 🌙'}
-                </div>
-                {sessionDurationMinutes(activeSession) != null && (
-                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 'var(--fs-sm2)', color: 'var(--ink-soft)', marginTop: 2 }}>
-                    trvání {formatDurationHM(sessionDurationMinutes(activeSession))}
-                  </div>
-                )}
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', marginTop: 2 }}>
-                  Zapsal: {userName(activeSession.user_id)}
-                </div>
-                <div className="weather-row" style={{ marginTop: 8 }}>
-                  <div className="w-item"><div className="num">{activeSession.weather_temp_c ?? '—'}°C</div><div className="lab">teplota</div></div>
-                  <div className="w-item"><div className="num">{activeSession.weather_pressure_hpa ?? '—'} hPa <IconPressureTrend trend={activeSession.weather_pressure_trend} size={12} /></div><div className="lab">tlak</div></div>
-                  <div className="w-item"><div className="num">{activeSession.weather_wind || '—'}</div><div className="lab">vítr</div></div>
-                </div>
-                {activeSession.water_stations?.length > 0 ? (
-                  activeSession.water_stations.map((ws) => (
-                    <div key={ws.station_id}>
-                      <div className="weather-row" style={{ marginTop: 8 }}>
-                        <div className="w-item"><div className="num"><IconDroplet size={13} color="var(--water-mid)" /> {ws.level_cm ?? '—'} cm</div><div className="lab">vodní stav</div></div>
-                        <div className="w-item"><div className="num">{ws.flow_m3s ?? '—'} m³/s</div><div className="lab">průtok</div></div>
-                        {ws.temp_c != null && <div className="w-item"><div className="num">{ws.temp_c}°C</div><div className="lab">teplota vody</div></div>}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
-                        {ws.station_name}{ws.precision ? ` · ${WATER_PRECISION_LABEL[ws.precision]}` : ''}
-                        {ws.spa_level != null && SPA_LEVEL_INFO[ws.spa_level] && ` · ${SPA_LEVEL_INFO[ws.spa_level].icon} ${SPA_LEVEL_INFO[ws.spa_level].label}`}
-                      </div>
-                    </div>
-                  ))
-                ) : activeSession.water_station_name && (
-                  <>
-                    <div className="weather-row" style={{ marginTop: 8 }}>
-                      <div className="w-item"><div className="num" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconDroplet size={13} color="var(--water-mid)" /> {activeSession.water_level_cm ?? '—'} cm</div><div className="lab">vodní stav</div></div>
-                      <div className="w-item"><div className="num">{activeSession.water_flow_m3s ?? '—'} m³/s</div><div className="lab">průtok</div></div>
-                      {activeSession.water_temp_c != null && <div className="w-item"><div className="num">{activeSession.water_temp_c}°C</div><div className="lab">teplota vody</div></div>}
-                    </div>
-                    <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
-                      {activeSession.water_station_name}{activeSession.water_data_precision ? ` · ${WATER_PRECISION_LABEL[activeSession.water_data_precision]}` : ''}
-                      {activeSession.water_spa_level != null && SPA_LEVEL_INFO[activeSession.water_spa_level] && ` · ${SPA_LEVEL_INFO[activeSession.water_spa_level].icon} ${SPA_LEVEL_INFO[activeSession.water_spa_level].label}`}
-                    </div>
-                  </>
-                )}
-                <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-soft)' }}>{activeSession.weather_desc}</div>
-                <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {(() => { const phase = moonPhaseName(activeSession.session_date); return <><IconMoonPhase phase={phase} size={14} /> {phase}</> })()}
-                </div>
-                <SessionMiniMap session={activeSession} userColor={userColor(activeSession.user_id)} onOpen={() => jumpToMapView(activeSession)} />
+      <div className="modal-bg show session-ticket-modal" onClick={(e) => e.target === e.currentTarget && closeTicket()}>
+        <div className="ticket" style={{ maxWidth: 460 }}>
+          <div className="ticket-mobile-backbar">
+            <button type="button" onClick={closeTicket}><IconArrowLeft size={16} /> Zpět</button>
+          </div>
+          <div className="ticket-top">
+            <button className="ticket-close" onClick={closeTicket}><IconClose size={16} /></button>
+            <div className="eyebrow">Výprava</div>
+            <h2>{s.title || 'Výprava'}</h2>
+            <div className="catcher-sub">Zapsal: {userName(s.user_id)}</div>
+          </div>
+          <div className="perforation"></div>
+          <div className="ticket-body">
+            {s.status === 'in_progress' && (
+              <div className="live-banner" style={{ marginBottom: 14 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconLive size={14} /> Výprava právě probíhá</span>
+                {canEdit && <button className="new-btn" onClick={() => endLiveSession(s)}>Ukončit výpravu</button>}
               </div>
-              <div className="det-block">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <h3>{LURE_TYPES.includes(activeSession.type) ? 'Nástraha' : 'Pruty a nástrahy'}</h3>
-                  {canEdit && !LURE_TYPES.includes(activeSession.type) && (
-                    <button className="new-btn" onClick={() => startAddRodToSession(activeSession)}>+ Přidat prut</button>
-                  )}
-                  {canEdit && LURE_TYPES.includes(activeSession.type) && (!activeSession.rods || activeSession.rods.length === 0) && (
-                    <button className="new-btn" onClick={() => addLureBaitToSession(activeSession)}>+ Přidat nástrahu</button>
-                  )}
-                </div>
-                {(activeSession.rods || [])
-                  .filter((r, i) => !LURE_TYPES.includes(activeSession.type) || i === 0)
-                  .map((r, i) => (
-                  editingRodId === r.id && canEdit ? (
-                    <RodEditRow
-                      key={r.id}
-                      rod={r}
-                      color={rodColors[i % rodColors.length]}
-                      baitPhotoMap={baitPhotoLookup()}
-                      baitListId={baitListId(activeSession.type)}
-                      baitCatalog={mergedBaitOptions(baitCategoryFor(activeSession.type))}
-                      baitCategory={baitCategoryFor(activeSession.type)}
-                      onAddBait={addBaitToCatalog}
-                      onBackfillBaitPhoto={backfillBaitPhoto}
-                      onArmPosition={() => {
-                        if (r.lat != null && r.lng != null) mapInstance.current?.setView([r.lat, r.lng], 19)
-                        setPlacementTarget(`edit-rod-${r.id}`)
-                      }}
-                      onDone={() => { setEditingRodId(null); loadSessions() }}
-                      onCancel={() => setEditingRodId(null)}
-                      onDeleteRod={() => { setEditingRodId(null); loadSessions() }}
-                      deleteLabel={LURE_TYPES.includes(activeSession.type) ? 'nástrahu' : 'prut'}
-                      hidePosition={LURE_TYPES.includes(activeSession.type)}
-                    />
-                  ) : (
-                    <div className="rod-row" key={r.id}>
-                      {!LURE_TYPES.includes(activeSession.type) && <>
-                        <div className="rod-dot" style={{ background: rodColors[i % rodColors.length] }} />
-                        <div className="rod-name">{r.name}</div>
-                      </>}
-                      <div className="rod-baits">
-                        {(r.baits && r.baits.length > 0 ? r.baits : (r.bait ? [{ name: r.bait, photo_url: r.bait_photo_url }] : [])).map((b, bi) => (
-                          <span className="bait-chip" key={bi}>
-                            {b.name}
-                            {b.photo_url && <img src={b.photo_thumb_url || b.photo_url} alt="nástraha" className="bait-thumb" />}
-                          </span>
-                        ))}
-                        {(!r.baits || r.baits.length === 0) && !r.bait && <span className="rod-bait">—</span>}
-                      </div>
-                      {canEdit && <button className="new-btn" onClick={() => setEditingRodId(r.id)}><IconEdit size={13} /></button>}
-                    </div>
-                  )
-                ))}
-                {!LURE_TYPES.includes(activeSession.type) && (!activeSession.rods || activeSession.rods.length === 0) && (
-                  <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Bez prutů</div>
-                )}
-                {!LURE_TYPES.includes(activeSession.type) && (
-                  <div className="coord-list">
-                    {(activeSession.rods || []).map((r) => (
-                      <button key={r.id} className="coord-chip" type="button" onClick={() => jumpToMapView(activeSession, { lat: r.lat, lng: r.lng, zoom: 17 })}>
-                        <IconRevir size={13} color="var(--water-mid)" dotColor="var(--paper)" /> {r.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {LURE_TYPES.includes(activeSession.type) && (
-                <div className="det-block">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <h3>Místa</h3>
-                    {canEdit && (
-                      activeSession.status === 'in_progress' ? (
-                        <button className="new-btn" onClick={() => addLurePlaceViaGps(activeSession)}>+ Další bod pomocí GPS</button>
-                      ) : (
-                        <button className="new-btn" onClick={() => startAddRodToSession(activeSession)}>+ Přidat další místo</button>
-                      )
-                    )}
-                  </div>
-                  <div className="coord-list">
-                    {(activeSession.rods || []).map((r, i) => (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <button className="coord-chip" type="button" style={{ flex: 1 }} onClick={() => jumpToMapView(activeSession, { lat: r.lat, lng: r.lng, zoom: 17 })}>
-                          <IconRevir size={13} color="var(--water-mid)" dotColor="var(--paper)" /> Místo {i + 1}
-                        </button>
-                        {canEdit && (
-                          <button className="new-btn" type="button" title="Přesunout" onClick={() => startRelocateLurePlace(activeSession, r)}><IconRevir size={13} /></button>
-                        )}
-                        {canEdit && i > 0 && (
-                          <button className="ticket-close" style={{ position: 'static', color: 'var(--ink-soft)' }} onClick={() => deleteLurePlace(r)}><IconClose size={14} /></button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {(activeSession.rods || []).length <= 1 && (
-                    <div style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 8 }}>Chytáš jen z jednoho místa. Pokud jsi zkoušel i jinde (např. jez z druhého břehu), přidej ho sem.</div>
-                  )}
-                </div>
-              )}
-              <div className="det-block">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <h3>Úlovky</h3>
-                  {canEdit && <button className="new-btn" onClick={startAddCatch}>+ úlovek</button>}
-                </div>
-                <div className="catch-list">
-                  {filteredCatches(activeSession).map((c) => {
-                    const target = (activeSession.target_species || '').trim().toLowerCase()
-                    const isGeneral = target.includes('obecně')
-                    const matchesTarget = target && (isGeneral ? c.category === 'dravec' : c.species?.trim().toLowerCase() === target)
-                    return (
-                      <div className="catch-row" key={c.id} onClick={() => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatch(c) }}>
-                        <div className="fish-mini" dangerouslySetInnerHTML={{ __html: fishSVG(CATEGORY_COLOR[c.category]) }} />
-                        <div>
-                          <div className="c-name">{c.species} {matchesTarget && <span title="Odpovídá cíli výpravy" style={{ display: 'inline-flex' }}><IconTarget size={12} color="var(--amber-deep)" /></span>}</div>
-                          <div className="c-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {c.length_cm} cm · {c.weight_kg} kg {c.weight_kg != null && c.weight_estimated && <IconApprox size={12} />}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {filteredCatches(activeSession).length === 0 && (
-                    <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Žádný úlovek.</div>
-                  )}
-                </div>
-              </div>
+            )}
+            <div className="ticket-illustration" style={{ margin: '0 0 14px' }}>
+              <SessionMiniMap session={s} userColor={userColor(s.user_id)} onOpen={() => jumpToMapView(s)} />
             </div>
-          )
+            {s.revir && <div className="ticket-line"><span className="lab">Revír</span><span className="val">{s.revir}</span></div>}
+            <div className="ticket-line">
+              <span className="lab">Datum</span>
+              <span className="val">
+                {s.session_date}{s.time_from ? ` · ${s.time_from}–${s.time_to || '?'}` : ''}
+                {crossesMidnight(s.time_from, s.time_to) && ' 🌙'}
+              </span>
+            </div>
+            {sessionDurationMinutes(s) != null && (
+              <div className="ticket-line"><span className="lab">Trvání</span><span className="val">{formatDurationHM(sessionDurationMinutes(s))}</span></div>
+            )}
+            {s.target_species && (
+              <div className="ticket-line"><span className="lab">Cíl</span><span className="val">{s.target_species}</span></div>
+            )}
+
+            <h3 className="section-title" style={{ marginTop: 18 }}>Podmínky</h3>
+            <div className="ticket-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="stat"><div className="num">{s.weather_temp_c ?? '—'}°C</div><div className="lab">teplota</div></div>
+              <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>{s.weather_pressure_hpa ?? '—'} <IconPressureTrend trend={s.weather_pressure_trend} size={12} /></div><div className="lab">tlak hPa</div></div>
+              <div className="stat"><div className="num">{s.weather_wind || '—'}</div><div className="lab">vítr</div></div>
+            </div>
+            {s.water_stations?.length > 0 ? (
+              s.water_stations.map((ws) => (
+                <div key={ws.station_id} style={{ marginTop: 10 }}>
+                  <div className="ticket-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><IconDroplet size={14} color="var(--water-mid)" /> {ws.level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
+                    <div className="stat"><div className="num">{ws.flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
+                    {ws.temp_c != null && <div className="stat"><div className="num">{ws.temp_c}°C</div><div className="lab">teplota vody</div></div>}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
+                    {ws.station_name}{ws.precision ? ` · ${WATER_PRECISION_LABEL[ws.precision]}` : ''}
+                    {ws.spa_level != null && SPA_LEVEL_INFO[ws.spa_level] && ` · ${SPA_LEVEL_INFO[ws.spa_level].icon} ${SPA_LEVEL_INFO[ws.spa_level].label}`}
+                  </div>
+                </div>
+              ))
+            ) : s.water_station_name && (
+              <div style={{ marginTop: 10 }}>
+                <div className="ticket-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><IconDroplet size={14} color="var(--water-mid)" /> {s.water_level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
+                  <div className="stat"><div className="num">{s.water_flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
+                  {s.water_temp_c != null && <div className="stat"><div className="num">{s.water_temp_c}°C</div><div className="lab">teplota vody</div></div>}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
+                  {s.water_station_name}{s.water_data_precision ? ` · ${WATER_PRECISION_LABEL[s.water_data_precision]}` : ''}
+                  {s.water_spa_level != null && SPA_LEVEL_INFO[s.water_spa_level] && ` · ${SPA_LEVEL_INFO[s.water_spa_level].icon} ${SPA_LEVEL_INFO[s.water_spa_level].label}`}
+                </div>
+              </div>
+            )}
+            {s.weather_desc && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--ink-soft)' }}>{s.weather_desc}</div>}
+            <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {(() => { const phase = moonPhaseName(s.session_date); return <><IconMoonPhase phase={phase} size={14} /> {phase}</> })()}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 20 }}>
+              <h3 className="section-title" style={{ margin: 0 }}>{isLure ? 'Nástraha' : 'Pruty a nástrahy'}</h3>
+              {canEdit && !isLure && (
+                <button className="new-btn" onClick={() => startAddRodToSession(s)}>+ Přidat prut</button>
+              )}
+              {canEdit && isLure && (!s.rods || s.rods.length === 0) && (
+                <button className="new-btn" onClick={() => addLureBaitToSession(s)}>+ Přidat nástrahu</button>
+              )}
+            </div>
+            {(s.rods || [])
+              .filter((r, i) => !isLure || i === 0)
+              .map((r, i) => (
+              editingRodId === r.id && canEdit ? (
+                <RodEditRow
+                  key={r.id}
+                  rod={r}
+                  color={rodColors[i % rodColors.length]}
+                  baitPhotoMap={baitPhotoLookup()}
+                  baitListId={baitListId(s.type)}
+                  baitCatalog={mergedBaitOptions(baitCategoryFor(s.type))}
+                  baitCategory={baitCategoryFor(s.type)}
+                  onAddBait={addBaitToCatalog}
+                  onBackfillBaitPhoto={backfillBaitPhoto}
+                  onArmPosition={() => {
+                    if (r.lat != null && r.lng != null) mapInstance.current?.setView([r.lat, r.lng], 19)
+                    setPlacementTarget(`edit-rod-${r.id}`)
+                  }}
+                  onDone={() => { setEditingRodId(null); loadSessions() }}
+                  onCancel={() => setEditingRodId(null)}
+                  onDeleteRod={() => { setEditingRodId(null); loadSessions() }}
+                  deleteLabel={isLure ? 'nástrahu' : 'prut'}
+                  hidePosition={isLure}
+                />
+              ) : (
+                <div className="rod-row" key={r.id}>
+                  {!isLure && <>
+                    <div className="rod-dot" style={{ background: rodColors[i % rodColors.length] }} />
+                    <div className="rod-name">{r.name}</div>
+                  </>}
+                  <div className="rod-baits">
+                    {(r.baits && r.baits.length > 0 ? r.baits : (r.bait ? [{ name: r.bait, photo_url: r.bait_photo_url }] : [])).map((b, bi) => (
+                      <span className="bait-chip" key={bi}>
+                        {b.name}
+                        {b.photo_url && <img src={b.photo_thumb_url || b.photo_url} alt="nástraha" className="bait-thumb" />}
+                      </span>
+                    ))}
+                    {(!r.baits || r.baits.length === 0) && !r.bait && <span className="rod-bait">—</span>}
+                  </div>
+                  {canEdit && <button className="new-btn" onClick={() => setEditingRodId(r.id)}><IconEdit size={13} /></button>}
+                </div>
+              )
+            ))}
+            {!isLure && (!s.rods || s.rods.length === 0) && (
+              <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Bez prutů</div>
+            )}
+
+            {isLure && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <h3 className="section-title" style={{ margin: 0 }}>Místa</h3>
+                  {canEdit && (
+                    s.status === 'in_progress' ? (
+                      <button className="new-btn" onClick={() => addLurePlaceViaGps(s)}>+ Další bod pomocí GPS</button>
+                    ) : (
+                      <button className="new-btn" onClick={() => startAddRodToSession(s)}>+ Přidat další místo</button>
+                    )
+                  )}
+                </div>
+                <div className="coord-list">
+                  {(s.rods || []).map((r, i) => (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button className="coord-chip" type="button" style={{ flex: 1 }} onClick={() => jumpToMapView(s, { lat: r.lat, lng: r.lng, zoom: 17 })}>
+                        <IconRevir size={13} color="var(--water-mid)" dotColor="var(--paper)" /> Místo {i + 1}
+                      </button>
+                      {canEdit && (
+                        <button className="new-btn" type="button" title="Přesunout" onClick={() => startRelocateLurePlace(s, r)}><IconRevir size={13} /></button>
+                      )}
+                      {canEdit && i > 0 && (
+                        <button className="ticket-close" style={{ position: 'static', color: 'var(--ink-soft)' }} onClick={() => deleteLurePlace(r)}><IconClose size={14} /></button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {(s.rods || []).length <= 1 && (
+                  <div style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 8 }}>Chytáš jen z jednoho místa. Pokud jsi zkoušel i jinde (např. jez z druhého břehu), přidej ho sem.</div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 20 }}>
+              <h3 className="section-title" style={{ margin: 0 }}>Úlovky</h3>
+              {canEdit && <button className="new-btn" onClick={startAddCatch}>+ úlovek</button>}
+            </div>
+            <div className="catch-list">
+              {filteredCatches(s).map((c) => {
+                const target = (s.target_species || '').trim().toLowerCase()
+                const isGeneral = target.includes('obecně')
+                const matchesTarget = target && (isGeneral ? c.category === 'dravec' : c.species?.trim().toLowerCase() === target)
+                return (
+                  <div className="catch-row" key={c.id} onClick={() => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatch(c) }}>
+                    <div className="fish-mini" dangerouslySetInnerHTML={{ __html: fishSVG(CATEGORY_COLOR[c.category]) }} />
+                    <div>
+                      <div className="c-name">{c.species} {matchesTarget && <span title="Odpovídá cíli výpravy" style={{ display: 'inline-flex' }}><IconTarget size={12} color="var(--amber-deep)" /></span>}</div>
+                      <div className="c-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {c.length_cm} cm · {c.weight_kg} kg {c.weight_kg != null && c.weight_estimated && <IconApprox size={12} />}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              {filteredCatches(s).length === 0 && (
+                <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Žádný úlovek.</div>
+              )}
+            </div>
+
+            {canEdit && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+                <button className="new-btn" onClick={() => duplicateSession(s)}><IconDuplicate size={13} /> Nová jako tahle</button>
+                {!isLure && <button className="new-btn" onClick={() => startRelocateFromCard(s)}><IconRevir size={13} /> Přesunout bod</button>}
+                <button className="new-btn" onClick={() => startEditSession(s)}><IconEdit size={13} /> Upravit výpravu</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     )
   }
+
 
   return (
     <div className={`app${isDemoGroup ? ' demo-readonly' : ''}`}>
@@ -5120,11 +5109,9 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
           <div className="desktop-detail-wrap">
             {activePanel === null && !mapNeededForInteraction && (
-              renderDetailStrip() || (
-                <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--ink-soft)', fontSize: 'var(--fs-sm2)' }}>
-                  Vyber výpravu ze seznamu vlevo.
-                </div>
-              )
+              <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--ink-soft)', fontSize: 'var(--fs-sm2)' }}>
+                Vyber výpravu ze seznamu vlevo.
+              </div>
             )}
           </div>
         </main>
@@ -5141,14 +5128,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             <div className="mobile-sheet-body" ref={mobileSheetBodyRef}>
               {activePanel === 'map' ? renderMapControls()
                 : activePanel === 'locations' ? renderLocationsList()
-                : (
-                  viewMode === 'detail' && activeSession && !draftSession ? (
-                    <>
-                      <button className="new-btn" onClick={() => setViewMode('aggregate')} style={{ margin: '0 18px 8px' }}>← Zpět na seznam</button>
-                      {renderDetailStrip()}
-                    </>
-                  ) : renderSessionList()
-                )}
+                : renderSessionList()}
             </div>
           </div>
         )}
@@ -5267,6 +5247,8 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           topSpecies={topSpeciesForType(editingSession.type)}
         />
       )}
+
+      {renderSessionTicket()}
 
       {ticketCatch && (
         <CatchTicket
