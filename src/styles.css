@@ -667,7 +667,7 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
 .rod-name{ font-weight:600; min-width:56px; }
 .rod-bait{ color:var(--ink-soft); }
 .catch-list{ display:flex; flex-direction:column; gap:8px; max-height:150px; overflow-y:auto; }
-.catch-row{ display:flex; align-items:center; gap:10px; background:var(--paper); border:1px solid var(--paper-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
+.catch-row{ display:flex; align-items:center; gap:10px; background:var(--paper); border:1px solid var(--paper-line); border-radius:0 8px 8px 0; padding:8px 12px; cursor:pointer; }
 .catch-row:hover{ border-color:var(--water-mid); }
 .catch-row .fish-mini{ width:26px; height:26px; flex:none; }
 .catch-row .c-name{ font-weight:600; font-size:var(--fs-base); }
@@ -781,9 +781,22 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
    písmo, ať appce text nepřeteče na druhý řádek a nenatáhne appce celý
    řádek mřížky vyšší, než mají sousední buňky. */
 .ticket-stats.stats-3 .num{ font-size:var(--fs-xl); white-space:nowrap; }
-.ticket-stats.stats-3{ gap:8px; }
+.ticket-stats.stats-3{ gap:8px; grid-template-columns:repeat(3, 1fr); }
 .ticket-stats.stats-3 .stat{ padding:9px 8px; }
 .stat .lab{ font-size:var(--fs-xs); color:var(--ink-soft); }
+/* Varianta A (odsouhlaseno vizuálně): appka odliší počasí od vody
+   barevným nádechem + pruhem vlevo, ať je na první pohled poznat, co k
+   čemu patří, ještě než přečteš popisek. Ikonka nad číslem appce to
+   potvrdí ještě jednou. */
+.stats-weather .stat{
+  background:#FAF3E7; border-color:#E7D4B0; border-left:3px solid var(--amber); border-radius:0 8px 8px 0;
+}
+.stats-weather .stat .lab{ color:var(--amber-deep); }
+.stats-water .stat{
+  background:var(--water-soft); border-color:#C3DCE6; border-left:3px solid var(--water-mid); border-radius:0 8px 8px 0;
+}
+.stats-water .stat .lab{ color:var(--water-mid); }
+.stats-weather .stat svg, .stats-water .stat svg{ display:block; margin-bottom:3px; }
 .ticket-line{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #EFEBDF; font-size:var(--fs-base); }
 .ticket-line:last-child{ border-bottom:none; }
 .ticket-line .lab{ color:var(--ink-soft); }
