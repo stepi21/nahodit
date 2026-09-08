@@ -261,6 +261,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   }, [mobileSheetOpen])
   const [loading, setLoading] = useState(true)
   const [ticketCatch, setTicketCatch] = useState(null)
+  const [ticketCatchReturn, setTicketCatchReturn] = useState(null) // úlovek, ke kterému se appka vrátí po zavření karty výpravy otevřené přes "Výprava →"
   const ticketCatchRef = useRef(null)
   useEffect(() => { ticketCatchRef.current = ticketCatch }, [ticketCatch])
   const pendingTicketCatchIdRef = useRef(null)
@@ -3048,6 +3049,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     if (session.lat != null && session.lng != null) mapInstance.current?.setView([session.lat, session.lng], 19)
     setMobileSheetOpen(false)
     setPlacementTarget('relocate-session-point')
+    setViewMode('aggregate')
   }
 
   // Appka doskočí ze detailu výpravy rovnou na záložku Mapa, ale appka
@@ -3087,6 +3089,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       mapInstance.current?.setView([session.lat, session.lng], 17)
     }
     setPlacementTarget('add-rod-to-session')
+    setViewMode('aggregate')
   }
 
   // U přívlače appka nástrahu ukládá jako jediný "prut" na stejné
@@ -3144,6 +3147,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     if (rod.lat != null && rod.lng != null) mapInstance.current?.setView([rod.lat, rod.lng], 19)
     setMobileSheetOpen(false)
     setPlacementTarget(`relocate-lure-place-${rod.id}`)
+    setViewMode('aggregate')
   }
 
   function startManageAreas(session) {
@@ -4356,13 +4360,17 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     if (!(activeSession && viewMode === 'detail' && !draftSession)) return null
     const s = activeSession
     const isLure = LURE_TYPES.includes(s.type)
-    const closeTicket = () => setViewMode('aggregate')
+    const closeTicket = () => {
+      if (ticketCatchReturn) { setTicketCatch(ticketCatchReturn); setTicketCatchReturn(null); setViewMode('aggregate'); return }
+      setViewMode('aggregate')
+    }
+    const closeTicketHome = () => { setTicketCatchReturn(null); setViewMode('aggregate') }
     return (
       <div className="modal-bg show session-ticket-modal" onClick={(e) => e.target === e.currentTarget && closeTicket()}>
         <div className="ticket" style={{ maxWidth: 460 }}>
           <div className="ticket-mobile-backbar">
             <button type="button" onClick={closeTicket}><IconArrowLeft size={16} /> Zpět</button>
-            <button type="button" onClick={closeTicket} title="Zavřít a vrátit se na seznam"><IconClose size={16} /></button>
+            <button type="button" onClick={closeTicketHome} title="Zavřít a vrátit se na seznam"><IconClose size={16} /></button>
           </div>
           <div className="ticket-top">
             <button className="ticket-close" onClick={closeTicket}><IconClose size={16} /></button>
@@ -4460,6 +4468,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                   onArmPosition={() => {
                     if (r.lat != null && r.lng != null) mapInstance.current?.setView([r.lat, r.lng], 19)
                     setPlacementTarget(`edit-rod-${r.id}`)
+                    setViewMode('aggregate')
                   }}
                   onDone={() => { setEditingRodId(null); loadSessions() }}
                   onCancel={() => setEditingRodId(null)}
@@ -4533,7 +4542,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                 const isGeneral = target.includes('obecně')
                 const matchesTarget = target && (isGeneral ? c.category === 'dravec' : c.species?.trim().toLowerCase() === target)
                 return (
-                  <div className="catch-row" key={c.id} onClick={() => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatch(c) }}>
+                  <div className="catch-row" key={c.id} onClick={() => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatchReturn(null); setTicketCatch(c) }}>
                     <div className="fish-mini" dangerouslySetInnerHTML={{ __html: fishSVG(CATEGORY_COLOR[c.category]) }} />
                     <div>
                       <div className="c-name">{c.species} {matchesTarget && <span title="Odpovídá cíli výpravy" style={{ display: 'inline-flex' }}><IconTarget size={12} color="var(--amber-deep)" /></span>}</div>
@@ -5296,7 +5305,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           }}
           onOpenSession={() => {
             const s = sessionForCatch(ticketCatch)
-            if (s) { setTicketCatch(null); setActiveId(s.id); setViewMode('detail') }
+            if (s) { setTicketCatchReturn(ticketCatch); setTicketCatch(null); setActiveId(s.id); setViewMode('detail') }
           }}
           onClose={() => {
             setTicketCatch(null)
