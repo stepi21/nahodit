@@ -283,15 +283,15 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
               {(c.weather_temp_c != null || session) && (
                 <div className="conditions-strip">
                   <span className="cond-chip"><IconCalendar size={12} /> {session?.session_date || c.caught_at?.slice(0, 10)}</span>
-                  <span className="cond-chip"><IconThermometer size={12} /> {c.weather_temp_c ?? session?.weather_temp_c ?? '—'}°C</span>
-                  <span className="cond-chip">
+                  <span className="cond-chip">{(() => { const phase = moonPhaseName(session?.session_date || c.caught_at?.slice(0, 10)); return <><IconMoonPhase phase={phase} size={13} /> {phase}</> })()}</span>
+                  <span className="cond-chip cond-weather"><IconThermometer size={12} /> {c.weather_temp_c ?? session?.weather_temp_c ?? '—'}°C</span>
+                  <span className="cond-chip cond-weather">
                     <IconGauge size={12} /> {c.weather_pressure_hpa ?? session?.weather_pressure_hpa ?? '—'} hPa
                     <IconPressureTrend trend={c.weather_pressure_trend ?? session?.weather_pressure_trend} size={12} />
                   </span>
-                  <span className="cond-chip"><IconWind size={12} /> {c.weather_wind || session?.weather_wind || '—'}</span>
-                  <span className="cond-chip">{(() => { const phase = moonPhaseName(session?.session_date || c.caught_at?.slice(0, 10)); return <><IconMoonPhase phase={phase} size={13} /> {phase}</> })()}</span>
+                  <span className="cond-chip cond-weather"><IconWind size={12} /> {c.weather_wind || session?.weather_wind || '—'}</span>
                   {(c.water_station_name || session?.water_station_name) && (
-                    <span className="cond-chip">
+                    <span className="cond-chip cond-water">
                       <IconDroplet size={12} color="var(--water-mid)" /> {c.water_level_cm ?? session?.water_level_cm ?? '—'} cm · {c.water_flow_m3s ?? session?.water_flow_m3s ?? '—'} m³/s
                       {(c.water_temp_c ?? session?.water_temp_c) != null ? ` · ${c.water_temp_c ?? session?.water_temp_c} °C` : ''}
                       {(() => {
