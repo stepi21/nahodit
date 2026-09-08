@@ -452,6 +452,10 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
   padding:0 18px 12px; flex-wrap:wrap;
 }
 .species-gallery-title{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-lg); color:var(--ink); display:flex; align-items:baseline; gap:8px; }
+.species-gallery-summary{
+  display:flex; gap:14px; flex-wrap:wrap; padding:0 18px 14px;
+  font-family:'IBM Plex Mono', monospace; font-size:var(--fs-sm); color:var(--ink-soft);
+}
 
 .polaroid-grid{ display:flex; flex-direction:column; gap:16px; padding:0 18px 20px; }
 .polaroid-card{
@@ -596,6 +600,8 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
   letter-spacing:.06em; color:var(--ink-soft); margin-bottom:12px;
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 14px;
 }
+.season-chart-label.clickable{ cursor:pointer; }
+.season-chart-label.clickable:hover{ color:var(--water-mid); }
 .season-chart-legend{ display:flex; gap:12px; text-transform:none; letter-spacing:0; flex:none; }
 .season-chart-legend span{ display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
 .season-chart-legend .dot{ width:7px; height:7px; border-radius:50%; display:inline-block; }
