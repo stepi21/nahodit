@@ -760,14 +760,14 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
     max-height:none; display:flex; flex-direction:column; overflow-y:hidden;
   }
   .session-ticket-modal .ticket-mobile-backbar{
-    display:flex; flex:none; background:var(--water-deep);
+    display:flex; justify-content:space-between; align-items:center; flex:none; background:var(--water-deep);
     padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top));
     position:sticky; top:0; z-index:2;
   }
   .session-ticket-modal .ticket-mobile-backbar button{
     display:flex; align-items:center; gap:6px; background:transparent; border:none;
     color:var(--white); font-family:'IBM Plex Mono', monospace; font-size:var(--fs-md);
-    font-weight:600; cursor:pointer; padding:4px 0;
+    font-weight:600; cursor:pointer; padding:4px;
   }
   .session-ticket-modal .ticket-close{ display:none; }
   .session-ticket-modal .ticket-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
