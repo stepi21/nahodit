@@ -602,6 +602,12 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
 }
 .season-chart-label.clickable{ cursor:pointer; }
 .season-chart-label.clickable:hover{ color:var(--water-mid); }
+.chart-toggle-btn{
+  flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--paper-line); border-radius:50%; background:var(--white);
+  color:var(--water-deep); font-size:13px; line-height:1; cursor:pointer; padding:0;
+}
+.chart-toggle-btn:hover{ background:var(--water-soft); border-color:var(--water-mid); }
 .season-chart-legend{ display:flex; gap:12px; text-transform:none; letter-spacing:0; flex:none; }
 .season-chart-legend span{ display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
 .season-chart-legend .dot{ width:7px; height:7px; border-radius:50%; display:inline-block; }
