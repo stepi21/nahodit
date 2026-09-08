@@ -280,7 +280,10 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
 .save-toast-record{
   background:var(--amber-deep); box-shadow:0 10px 30px rgba(196,133,26,.4);
   animation: toast-in .2s ease, toast-pop .4s ease .1s;
+  border-radius:14px; padding:12px 20px; text-align:left;
 }
+.save-toast-title{ display:flex; align-items:center; gap:7px; font-weight:700; }
+.save-toast-sub{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-sm); font-weight:500; opacity:.9; margin-top:2px; }
 @keyframes toast-pop{ 0%{ transform:translate(-50%,0) scale(1); } 40%{ transform:translate(-50%,0) scale(1.06); } 100%{ transform:translate(-50%,0) scale(1); } }
 @media (max-width:860px){
   /* Appka appce nechá toast vyskočit nad spodní navigační lištu -- ta
