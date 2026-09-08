@@ -4410,18 +4410,30 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             )}
 
             <h3 className="section-title" style={{ marginTop: 18 }}>Podmínky</h3>
-            <div className="ticket-stats stats-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-              <div className="stat"><div className="num">{s.weather_temp_c ?? '—'}°C</div><div className="lab">teplota</div></div>
-              <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>{s.weather_pressure_hpa ?? '—'} <IconPressureTrend trend={s.weather_pressure_trend} size={12} /></div><div className="lab">tlak hPa</div></div>
-              <div className="stat"><div className="num">{s.weather_wind || '—'}</div><div className="lab">vítr</div></div>
+            <div className="ticket-stats stats-3 stats-weather">
+              <div className="stat">
+                <IconThermometer size={15} color="var(--amber-deep)" />
+                <div className="num">{s.weather_temp_c ?? '—'}°C</div>
+                <div className="lab">teplota</div>
+              </div>
+              <div className="stat">
+                <IconGauge size={15} color="var(--amber-deep)" />
+                <div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>{s.weather_pressure_hpa ?? '—'} <IconPressureTrend trend={s.weather_pressure_trend} size={12} /></div>
+                <div className="lab">tlak hPa</div>
+              </div>
+              <div className="stat">
+                <IconWind size={15} color="var(--amber-deep)" />
+                <div className="num">{s.weather_wind || '—'}</div>
+                <div className="lab">vítr</div>
+              </div>
             </div>
             {s.water_stations?.length > 0 ? (
               s.water_stations.map((ws) => (
-                <div key={ws.station_id} style={{ marginTop: 10 }}>
-                  <div className="ticket-stats stats-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                    <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><IconDroplet size={14} color="var(--water-mid)" /> {ws.level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
-                    <div className="stat"><div className="num">{ws.flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
-                    {ws.temp_c != null && <div className="stat"><div className="num">{ws.temp_c}°C</div><div className="lab">teplota vody</div></div>}
+                <div key={ws.station_id} style={{ marginTop: 7 }}>
+                  <div className="ticket-stats stats-3 stats-water">
+                    <div className="stat"><IconDroplet size={15} color="var(--water-mid)" /><div className="num">{ws.level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
+                    <div className="stat"><IconRiverAuto size={15} color="var(--water-mid)" /><div className="num">{ws.flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
+                    {ws.temp_c != null && <div className="stat"><IconThermometer size={15} color="var(--water-mid)" /><div className="num">{ws.temp_c}°C</div><div className="lab">teplota vody</div></div>}
                   </div>
                   <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
                     {ws.station_name}{ws.precision ? ` · ${WATER_PRECISION_LABEL[ws.precision]}` : ''}
@@ -4430,11 +4442,11 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                 </div>
               ))
             ) : s.water_station_name && (
-              <div style={{ marginTop: 10 }}>
-                <div className="ticket-stats stats-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                  <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><IconDroplet size={14} color="var(--water-mid)" /> {s.water_level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
-                  <div className="stat"><div className="num">{s.water_flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
-                  {s.water_temp_c != null && <div className="stat"><div className="num">{s.water_temp_c}°C</div><div className="lab">teplota vody</div></div>}
+              <div style={{ marginTop: 7 }}>
+                <div className="ticket-stats stats-3 stats-water">
+                  <div className="stat"><IconDroplet size={15} color="var(--water-mid)" /><div className="num">{s.water_level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
+                  <div className="stat"><IconRiverAuto size={15} color="var(--water-mid)" /><div className="num">{s.water_flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
+                  {s.water_temp_c != null && <div className="stat"><IconThermometer size={15} color="var(--water-mid)" /><div className="num">{s.water_temp_c}°C</div><div className="lab">teplota vody</div></div>}
                 </div>
                 <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--ink-soft)' }}>
                   {s.water_station_name}{s.water_data_precision ? ` · ${WATER_PRECISION_LABEL[s.water_data_precision]}` : ''}
@@ -4546,14 +4558,19 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                 const isGeneral = target.includes('obecně')
                 const matchesTarget = target && (isGeneral ? c.category === 'dravec' : c.species?.trim().toLowerCase() === target)
                 return (
-                  <div className="catch-row" key={c.id} onClick={() => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatchReturn(null); setTicketCatch(c) }}>
+                  <div className="catch-row" style={{ borderLeft: `4px solid ${CATEGORY_COLOR[c.category]}` }} key={c.id} onClick={() => { setBaitsInitialKey(null); setLocationsReturnId(null); setTicketCatchReturn(null); setTicketCatch(c) }}>
                     <div className="fish-mini" dangerouslySetInnerHTML={{ __html: fishSVG(CATEGORY_COLOR[c.category]) }} />
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div className="c-name">{c.species} {matchesTarget && <span title="Odpovídá cíli výpravy" style={{ display: 'inline-flex' }}><IconTarget size={12} color="var(--amber-deep)" /></span>}</div>
                       <div className="c-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         {c.length_cm} cm · {c.weight_kg} kg {c.weight_kg != null && c.weight_estimated && <IconApprox size={12} />}
                       </div>
                     </div>
+                    {c.caught_at && (
+                      <div style={{ fontSize: 'var(--fs-sm2)', color: 'var(--ink-soft)', fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'nowrap' }}>
+                        {new Date(c.caught_at).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
                   </div>
                 )
               })}
