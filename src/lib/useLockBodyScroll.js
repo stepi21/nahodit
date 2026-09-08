@@ -27,6 +27,15 @@ let SAVED_SCROLL_Y = 0
 
 export function useLockBodyScroll() {
   useEffect(() => {
+    // Na mobilu appka tenhle panel stejně vykreslí přes celou obrazovku
+    // (position:fixed; inset:0) -- appka tam scroll stránky POD panelem
+    // fyzicky nemůže potkat prstem, protože panel ji celou zakrývá.
+    // Zamykání body tam navíc appce dělalo přesně tu neshodu výšky
+    // viewportu, co je popsaná níž (proužek pozadí navíc dole) -- appka
+    // proto zámek na mobilu úplně vynechá. Na desktopu (menší
+    // vycentrované okno, stránka POD ním viditelná a scrollovatelná)
+    // appka zámek pořád potřebuje beze změny.
+    if (window.innerWidth <= 860) return undefined
     const body = document.body
     if (LOCK_COUNT === 0) {
       SAVED_SCROLL_Y = window.scrollY
