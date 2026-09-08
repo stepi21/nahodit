@@ -730,14 +730,14 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
     max-height:none; display:flex; flex-direction:column; overflow-y:hidden;
   }
   .catch-ticket-modal .ticket-mobile-backbar{
-    display:flex; flex:none; background:var(--water-deep);
+    display:flex; justify-content:space-between; align-items:center; flex:none; background:var(--water-deep);
     padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top));
     position:sticky; top:0; z-index:2;
   }
   .catch-ticket-modal .ticket-mobile-backbar button{
     display:flex; align-items:center; gap:6px; background:transparent; border:none;
     color:var(--white); font-family:'IBM Plex Mono', monospace; font-size:var(--fs-md);
-    font-weight:600; cursor:pointer; padding:4px 0;
+    font-weight:600; cursor:pointer; padding:4px;
   }
   .catch-ticket-modal .ticket-close{ display:none; }
   /* Modál appka appce vždycky vykreslí NAD vším ostatním (position:fixed),
@@ -776,6 +776,13 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
 .ticket-stats{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
 .stat{ background:var(--paper); border:1px solid var(--paper-line); border-radius:8px; padding:9px 12px; }
 .stat .num{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-2xl); font-weight:600; color:var(--water-deep); }
+/* 3 sloupce vedle sebe appce dají míň místa na buňku než 2 (délka/váha
+   úlovku) -- appka proto u širších hodnot (např. "13 km/h Z") sníží
+   písmo, ať appce text nepřeteče na druhý řádek a nenatáhne appce celý
+   řádek mřížky vyšší, než mají sousední buňky. */
+.ticket-stats.stats-3 .num{ font-size:var(--fs-xl); white-space:nowrap; }
+.ticket-stats.stats-3{ gap:8px; }
+.ticket-stats.stats-3 .stat{ padding:9px 8px; }
 .stat .lab{ font-size:var(--fs-xs); color:var(--ink-soft); }
 .ticket-line{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #EFEBDF; font-size:var(--fs-base); }
 .ticket-line:last-child{ border-bottom:none; }
