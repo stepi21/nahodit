@@ -1005,6 +1005,8 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         // místo aby appka vycentrovala zpátky na pevný zoom.
         suppressSessionFitRef.current = true
         setPlacementTarget(null)
+        setActiveId(sid)
+        setViewMode('detail')
       })()
       return
     }
@@ -1024,6 +1026,8 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         await loadSessions()
         suppressSessionFitRef.current = true
         setPlacementTarget(null)
+        setActiveId(info.sessionId)
+        setViewMode('detail')
       })()
       return
     }
@@ -1049,6 +1053,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       setPlacementTarget(null)
       const s = activeSessionRef.current
       setDraftCatch({ point, species: '', category: TYPE_CATEGORY[s?.type] || 'dravec', length: '', weight: '', weightEstimated: false, bait: '', rodId: '', time: s?.status === 'in_progress' ? nowHHMM() : '', photoFile: null, baitPhotoFile: null, revir: s?.revir || '' })
+      if (s) { setActiveId(s.id); setViewMode('detail') }
       return
     }
 
@@ -1066,21 +1071,25 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
     if (target.startsWith('edit-rod-')) {
       const rodId = target.slice('edit-rod-'.length)
+      const sid = activeSessionRef.current?.id
       setPlacementTarget(null)
       supabase.from('rods').update({ lat: point.lat, lng: point.lng }).eq('id', rodId).then(({ error }) => {
         if (error) alert(error.message)
         else loadSessions()
       })
+      if (sid) { setActiveId(sid); setViewMode('detail') }
       return
     }
 
     if (target.startsWith('relocate-lure-place-')) {
       const rodId = target.slice('relocate-lure-place-'.length)
+      const sid = activeSessionRef.current?.id
       setPlacementTarget(null)
       supabase.from('rods').update({ lat: point.lat, lng: point.lng }).eq('id', rodId).then(({ error }) => {
         if (error) alert(error.message)
         else loadSessions()
       })
+      if (sid) { setActiveId(sid); setViewMode('detail') }
       return
     }
   }
@@ -2659,6 +2668,10 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       setMobileSheetOpen(false)
       return
     }
+    // Appka na výběr prutu appce ukáže vyskakovací nabídku (.type-picker) --
+    // appka ji appce vykresluje v nižší vrstvě než kartu výpravy, takže by
+    // appka appce zůstala schovaná pod ní, kdyby appka kartu nezavřela.
+    setViewMode('aggregate')
     setCatchChoosing(true)
     setMobileSheetOpen(false)
   }
@@ -2667,6 +2680,11 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     setCatchChoosing(false)
     const knownPhoto = rod.bait ? baitPhotoLookup()[rod.bait.trim().toLowerCase()] : null
     setDraftCatch({ point: { lat: rod.lat, lng: rod.lng }, species: '', category: TYPE_CATEGORY[activeSession?.type] || 'dravec', length: '', weight: '', weightEstimated: false, bait: rod.bait || '', rodId: rod.id, time: activeSession?.status === 'in_progress' ? nowHHMM() : '', photoFile: null, baitPhotoFile: null, bait_photo_url: knownPhoto || null, revir: activeSession?.revir || '' })
+    // Appka kartu výpravy appce zase otevře pod formulářem (side-panel je
+    // appce vždycky navrchu, ať appka výprava byla otevřená nebo ne) --
+    // appka po uložení/zavření úlovku appce vrátí zpátky do výpravy, ne na
+    // holý seznam.
+    if (activeSession) setViewMode('detail')
   }
 
   function chooseCatchOnMap() {
@@ -2675,6 +2693,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       mapInstance.current?.setView([activeSession.lat, activeSession.lng], 18)
     }
     setPlacementTarget('catch-point')
+    setViewMode('aggregate')
   }
 
   async function saveSession() {
