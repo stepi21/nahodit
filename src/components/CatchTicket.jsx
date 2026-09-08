@@ -48,7 +48,7 @@ function toLocalTimeInput(isoString) {
   return `${hh}:${mm}`
 }
 
-export default function CatchTicket({ catchData: c, session, catcherName, canEdit = false, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, locationsCatalog = [], onAddBait, onBackfillBaitPhoto, onSetCatchLocation, onRelocate, onFocusLocation, onOpenSession, onClose, onExit, onUpdated, onDeleted, onShowToast }) {
+export default function CatchTicket({ catchData: c, session, catcherName, canEdit = false, hidden = false, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, locationsCatalog = [], onAddBait, onBackfillBaitPhoto, onSetCatchLocation, onRelocate, onFocusLocation, onOpenSession, onClose, onExit, onUpdated, onDeleted, onShowToast }) {
   useLockBodyScroll()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -212,7 +212,7 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
   }
 
   return (
-    <div className="modal-bg show catch-ticket-modal" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-bg show catch-ticket-modal" style={hidden ? { display: 'none' } : undefined} onClick={(e) => e.target === e.currentTarget && onClose()}>
       {pickingRevir && createPortal(
         <div className="modal-bg show bait-picker-modal" onClick={(e) => e.target === e.currentTarget && setPickingRevir(false)}>
           <div className="ticket" style={{ maxWidth: 320 }}>
