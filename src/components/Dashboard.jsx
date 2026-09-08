@@ -433,24 +433,27 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   // členové) pro daný druh -- appka appce porovná se stavem PŘED
   // uložením nového úlovku (parametr `sessions` appka appce předá
   // aktuální, ještě needitovaný stav), ať appka appka nepočítá nový
-  // úlovek sama proti sobě.
+  // úlovek sama proti sobě. Když appka pro daný druh ještě žádný
+  // úlovek nemá (ani appka sama, ani nikdo z party), appka to bere
+  // jako rekord taky -- první úlovek druhu je logicky appce nejlepší
+  // appce dosavadní.
   function detectNewRecord(sessions, species, lengthCm) {
     const len = Number(lengthCm)
     if (!species || !Number.isFinite(len) || len <= 0) return null
     const key = species.trim().toLowerCase()
-    let personalBest = 0
-    let partyBest = 0
+    let personalBest = null
+    let partyBest = null
     sessions.forEach((s) => {
       ;(s.catches || []).forEach((cc) => {
-        const ccLen = Number(cc.length_cm)
         if ((cc.species || '').trim().toLowerCase() !== key) return
+        const ccLen = Number(cc.length_cm)
         if (!Number.isFinite(ccLen)) return
-        if (ccLen > partyBest) partyBest = ccLen
-        if (s.user_id === userId && ccLen > personalBest) personalBest = ccLen
+        if (partyBest == null || ccLen > partyBest) partyBest = ccLen
+        if (s.user_id === userId && (personalBest == null || ccLen > personalBest)) personalBest = ccLen
       })
     })
-    if (len > partyBest && partyBest > 0) return 'party'
-    if (len > personalBest && personalBest > 0) return 'personal'
+    if (partyBest == null || len > partyBest) return 'party'
+    if (personalBest == null || len > personalBest) return 'personal'
     return null
   }
 
@@ -2820,9 +2823,21 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       setDraftCatch(null)
       await loadSessions()
       if (recordType === 'party') {
-        showToast(`🏆 Nový rekord party! ${c.species} ${c.length} cm`, 'record')
+        showToast(
+          <>
+            <div className="save-toast-title"><IconTrophy size={16} color="#fff" /> Nový rekord party</div>
+            <div className="save-toast-sub">{c.species} · {c.length} cm</div>
+          </>,
+          'record'
+        )
       } else if (recordType === 'personal') {
-        showToast(`🎉 Nový osobní rekord! ${c.species} ${c.length} cm`, 'record')
+        showToast(
+          <>
+            <div className="save-toast-title"><IconTrophy size={16} color="#fff" /> Nový osobní rekord</div>
+            <div className="save-toast-sub">{c.species} · {c.length} cm</div>
+          </>,
+          'record'
+        )
       } else {
         showToast('✓ Úlovek uložen')
       }
