@@ -4376,7 +4376,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                 {canEdit && <button className="new-btn" onClick={() => endLiveSession(s)}>Ukončit výpravu</button>}
               </div>
             )}
-            <div className="ticket-illustration" style={{ margin: '0 0 14px' }}>
+            <div style={{ margin: '0 0 14px' }}>
               <SessionMiniMap session={s} userColor={userColor(s.user_id)} onOpen={() => jumpToMapView(s)} />
             </div>
             {s.revir && <div className="ticket-line"><span className="lab">Revír</span><span className="val">{s.revir}</span></div>}
@@ -4395,7 +4395,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             )}
 
             <h3 className="section-title" style={{ marginTop: 18 }}>Podmínky</h3>
-            <div className="ticket-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className="ticket-stats stats-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="stat"><div className="num">{s.weather_temp_c ?? '—'}°C</div><div className="lab">teplota</div></div>
               <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>{s.weather_pressure_hpa ?? '—'} <IconPressureTrend trend={s.weather_pressure_trend} size={12} /></div><div className="lab">tlak hPa</div></div>
               <div className="stat"><div className="num">{s.weather_wind || '—'}</div><div className="lab">vítr</div></div>
@@ -4403,7 +4403,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             {s.water_stations?.length > 0 ? (
               s.water_stations.map((ws) => (
                 <div key={ws.station_id} style={{ marginTop: 10 }}>
-                  <div className="ticket-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  <div className="ticket-stats stats-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                     <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><IconDroplet size={14} color="var(--water-mid)" /> {ws.level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
                     <div className="stat"><div className="num">{ws.flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
                     {ws.temp_c != null && <div className="stat"><div className="num">{ws.temp_c}°C</div><div className="lab">teplota vody</div></div>}
@@ -4416,7 +4416,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
               ))
             ) : s.water_station_name && (
               <div style={{ marginTop: 10 }}>
-                <div className="ticket-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div className="ticket-stats stats-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                   <div className="stat"><div className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}><IconDroplet size={14} color="var(--water-mid)" /> {s.water_level_cm ?? '—'}</div><div className="lab">vodní stav cm</div></div>
                   <div className="stat"><div className="num">{s.water_flow_m3s ?? '—'}</div><div className="lab">průtok m³/s</div></div>
                   {s.water_temp_c != null && <div className="stat"><div className="num">{s.water_temp_c}°C</div><div className="lab">teplota vody</div></div>}
@@ -5288,8 +5288,6 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
               requestAnimationFrame(() => {
                 window.scrollTo(0, 0)
                 if (!s) { switchPanel('map'); return }
-                setActiveId(s.id)
-                setViewMode('detail')
                 jumpToMapView(s, { lat: c.lat, lng: c.lng, zoom: 16 })
               })
             })
@@ -5303,6 +5301,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             if (baitsInitialKey) setShowBaits(true)
             if (locationsReturnId) setShowLocations(true)
           }}
+          onExit={() => { setTicketCatch(null); setViewMode('aggregate') }}
           onUpdated={loadSessions}
           onDeleted={() => { setTicketCatch(null); loadSessions() }}
         />
