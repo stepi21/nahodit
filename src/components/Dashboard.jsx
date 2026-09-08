@@ -3028,7 +3028,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     relocateCatchIdRef.current = catchId
     const c = sessions.flatMap((s) => s.catches || []).find((cc) => cc.id === catchId)
     if (c?.lat != null && c?.lng != null) mapInstance.current?.setView([c.lat, c.lng], 19)
-    if (c?.session_id) setMapFocusSessionId(c.session_id)
+    if (c?.session_id) { setActiveId(c.session_id); setViewMode('detail') }
     setMobileSheetOpen(false)
     setPlacementTarget('relocate-catch')
   }
