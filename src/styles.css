@@ -277,6 +277,11 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
   animation: toast-in .2s ease;
 }
 @keyframes toast-in{ from{ opacity:0; transform:translate(-50%,10px); } to{ opacity:1; transform:translate(-50%,0); } }
+.save-toast-record{
+  background:var(--amber-deep); box-shadow:0 10px 30px rgba(196,133,26,.4);
+  animation: toast-in .2s ease, toast-pop .4s ease .1s;
+}
+@keyframes toast-pop{ 0%{ transform:translate(-50%,0) scale(1); } 40%{ transform:translate(-50%,0) scale(1.06); } 100%{ transform:translate(-50%,0) scale(1); } }
 @media (max-width:860px){
   /* Appka appce nechá toast vyskočit nad spodní navigační lištu -- ta
      existuje jen v appce nainstalované na plochu. */
