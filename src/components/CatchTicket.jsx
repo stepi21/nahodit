@@ -48,7 +48,7 @@ function toLocalTimeInput(isoString) {
   return `${hh}:${mm}`
 }
 
-export default function CatchTicket({ catchData: c, session, catcherName, canEdit = false, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, locationsCatalog = [], onAddBait, onBackfillBaitPhoto, onSetCatchLocation, onRelocate, onFocusLocation, onOpenSession, onClose, onUpdated, onDeleted, onShowToast }) {
+export default function CatchTicket({ catchData: c, session, catcherName, canEdit = false, baitPhotoMap = {}, baitListId = 'known-baits-all', baitCatalog = [], baitCategory = null, locationsCatalog = [], onAddBait, onBackfillBaitPhoto, onSetCatchLocation, onRelocate, onFocusLocation, onOpenSession, onClose, onExit, onUpdated, onDeleted, onShowToast }) {
   useLockBodyScroll()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -236,6 +236,7 @@ export default function CatchTicket({ catchData: c, session, catcherName, canEdi
       <div className="ticket">
         <div className="ticket-mobile-backbar">
           <button type="button" onClick={onClose}><IconArrowLeft size={16} /> Zpět</button>
+          {onExit && <button type="button" onClick={onExit} title="Zavřít a vrátit se na seznam"><IconClose size={16} /></button>}
         </div>
         <div className="ticket-top">
           <button className="ticket-close" onClick={onClose}><IconClose size={16} /></button>
