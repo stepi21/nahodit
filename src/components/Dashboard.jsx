@@ -3856,7 +3856,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         <div className="index-row">
           {['dravec', 'bila'].map((cat) => (
             <div className={`index-cell category-${cat}`} key={cat}>
-              <div className="index-cell-label">{cat === 'dravec' ? 'dravec' : 'bílá ryba'}</div>
+              <div className="index-cell-label">{cat === 'dravec' ? 'Dravec' : 'Bílá ryba'}</div>
               <div className="index-cell-days">
                 {todayIndex.days.map((d) => {
                   const r = d[cat]
