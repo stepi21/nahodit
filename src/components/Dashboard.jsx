@@ -4308,7 +4308,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             {['all', 'dravec', 'bila'].map((cat) => (
               <button
                 key={cat}
-                className={`filter-chip ${activeCategory === cat ? `active ${cat}` : ''}`}
+                className={`filter-chip ${cat !== 'all' ? cat : ''} ${activeCategory === cat ? 'active' : ''}`}
                 onClick={() => { setActiveCategory(cat); setViewMode('aggregate') }}
               >
                 {cat === 'all' ? 'Vše' : cat === 'dravec' ? 'Dravci' : 'Bílá ryba'}
@@ -4320,16 +4320,18 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
               <button
                 className={`filter-chip ${activeUserFilter === 'all' ? 'active' : ''}`}
                 onClick={() => { setActiveUserFilter('all'); setViewMode('aggregate') }}
-              >Kdo: Vše</button>
+              >Kdo</button>
               {members.map((m) => (
                 <button
                   key={m.id}
                   className={`filter-chip user-chip ${activeUserFilter === m.id ? 'active' : ''}`}
-                  style={activeUserFilter === m.id ? { background: userColor(m.id), borderColor: userColor(m.id) } : {}}
+                  style={{
+                    borderColor: userColor(m.id),
+                    ...(activeUserFilter === m.id ? { background: userColor(m.id) } : {}),
+                  }}
                   onClick={() => { setActiveUserFilter(m.id); setViewMode('aggregate') }}
                 >
-                  <span className="user-dot" style={{ background: userColor(m.id) }} />
-                  {m.name}{m.id === userId ? ' (já)' : ''}
+                  {m.name}
                 </button>
               ))}
             </div>
