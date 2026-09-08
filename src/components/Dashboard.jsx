@@ -3686,16 +3686,24 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           <div style={{ padding: '0 18px 6px' }}>
             <div className="field-label" style={{ margin: '0 0 4px' }}>Čí záznamy vidět</div>
             <div className="filter-row" style={{ padding: 0, marginBottom: 12 }}>
-              {[['me', 'Moje'], ['party', 'Parta'], ['both', 'Všichni']].map(([val, label]) => (
-                <button key={val} className={`filter-chip ${mapWho === val ? 'active' : ''}`} onClick={() => setMapWho(val)}>{label}</button>
+              {[['both', 'Všichni'], ['me', 'Moje'], ['party', 'Parta']].map(([val, label]) => (
+                <button
+                  key={val}
+                  className={`filter-chip ${mapWho === val ? 'active' : ''}`}
+                  style={val === 'me' ? {
+                    borderColor: userColor(userId),
+                    ...(mapWho === 'me' ? { background: userColor(userId) } : {}),
+                  } : {}}
+                  onClick={() => setMapWho(val)}
+                >{label}</button>
               ))}
             </div>
             <div className="field-label" style={{ margin: '0 0 4px' }}>Co ukázat</div>
             <div className="filter-row" style={{ padding: 0 }}>
               {[
+                ['both', 'Vše', null],
                 ['trips', 'Výpravy', <IconVyprava key="i" size={13} color={mapWhat === 'trips' ? '#fff' : 'var(--water-deep)'} />],
                 ['catches', 'Úlovky', <IconUlovek key="i" size={13} color={mapWhat === 'catches' ? '#fff' : 'var(--water-deep)'} />],
-                ['both', 'Vše', null],
               ].map(([val, label, icon]) => (
                 <button key={val} className={`filter-chip ${mapWhat === val ? 'active' : ''}`} onClick={() => setMapWhat(val)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   {icon}{label}
@@ -4320,7 +4328,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
               <button
                 className={`filter-chip ${activeUserFilter === 'all' ? 'active' : ''}`}
                 onClick={() => { setActiveUserFilter('all'); setViewMode('aggregate') }}
-              >Kdo</button>
+              >Všichni</button>
               {members.map((m) => (
                 <button
                   key={m.id}
