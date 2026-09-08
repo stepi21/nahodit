@@ -3060,6 +3060,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     setMapFocusSessionId(session.id)
     setMapFocusPoint(focusPoint || null)
     setMobileSheetOpen(false)
+    setViewMode('aggregate')
   }
 
   // Appka umožní přidat nový prut k UŽ ULOŽENÉ výpravě -- na rozdíl od
@@ -4361,6 +4362,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         <div className="ticket" style={{ maxWidth: 460 }}>
           <div className="ticket-mobile-backbar">
             <button type="button" onClick={closeTicket}><IconArrowLeft size={16} /> Zpět</button>
+            <button type="button" onClick={closeTicket} title="Zavřít a vrátit se na seznam"><IconClose size={16} /></button>
           </div>
           <div className="ticket-top">
             <button className="ticket-close" onClick={closeTicket}><IconClose size={16} /></button>
@@ -5294,7 +5296,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           }}
           onOpenSession={() => {
             const s = sessionForCatch(ticketCatch)
-            if (s) { setTicketCatch(null); setMobileSheetOpen(false); setActivePanel(null); setActiveId(s.id); setViewMode('detail') }
+            if (s) { setTicketCatch(null); setActiveId(s.id); setViewMode('detail') }
           }}
           onClose={() => {
             setTicketCatch(null)
