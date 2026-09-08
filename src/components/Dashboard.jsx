@@ -2876,6 +2876,10 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
     return years
   }
 
+  // Appka nechá kartu grafu (Sezóna · úlovky po týdnech) sbalitelnou, ale
+  // stav si nikam neukládá -- druhý klik na záložku Výpravy appku vrátí na
+  // výchozí (rozbalený) stav, stejně jako appka dělá u roků/měsíců výprav.
+  const [chartCollapsed, setChartCollapsed] = useState(false)
   const [collapsedGroups, setCollapsedGroups] = useState(new Set())
   const collapseInitRef = useRef(false)
   // Appka spočítá výchozí rozbalení (jen nejnovější rok+měsíc rozbalené,
@@ -2971,6 +2975,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
       else if (panel === null) {
         setViewMode('aggregate'); setActiveCategory('all'); setActiveUserFilter('all')
         setCollapsedGroups(defaultCollapsedGroups(sessions))
+        setChartCollapsed(false)
         if (sidebarRef.current) sidebarRef.current.scrollTop = 0
         if (mobileSheetBodyRef.current) mobileSheetBodyRef.current.scrollTop = 0
         window.scrollTo(0, 0)
@@ -4144,6 +4149,14 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
     if (openSpecies) {
       const list = [...bySpecies[openSpecies]].sort((a, b) => (Number(b.length_cm) || 0) - (Number(a.length_cm) || 0))
+      // appka spočítá souhrn druhu (průměrná délka/váha, celková ulovená
+      // váha) -- appka počítá jen z úlovků, co mají danou hodnotu vyplněnou,
+      // ať odhad neshazují dolů kusy bez zadané délky/váhy.
+      const lengths = list.map((c) => Number(c.length_cm)).filter((n) => Number.isFinite(n) && n > 0)
+      const weights = list.map((c) => Number(c.weight_kg)).filter((n) => Number.isFinite(n) && n > 0)
+      const avgLength = lengths.length ? lengths.reduce((a, b) => a + b, 0) / lengths.length : null
+      const avgWeight = weights.length ? weights.reduce((a, b) => a + b, 0) / weights.length : null
+      const totalWeight = weights.length ? weights.reduce((a, b) => a + b, 0) : null
       return (
         <>
           {header}
@@ -4151,6 +4164,13 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             <button className="new-btn" onClick={() => setSpeciesGalleryKey(null)}>← Zpět na druhy</button>
             <span className="species-gallery-title">{openSpecies} <span className="species-count">{list.length}×</span></span>
           </div>
+          {(avgLength != null || avgWeight != null) && (
+            <div className="species-gallery-summary">
+              {avgLength != null && <span>Ø délka {avgLength.toFixed(1)} cm</span>}
+              {avgWeight != null && <span>Ø váha {avgWeight.toFixed(1)} kg</span>}
+              {totalWeight != null && <span>celkem {totalWeight.toFixed(1)} kg</span>}
+            </div>
+          )}
           <div className="polaroid-grid">
             {list.map((c, i) => (
               <div key={c.id} className="polaroid-card" onClick={() => openCatch(c)}>
@@ -4244,29 +4264,42 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             const weeks = computeWeeklyActivity(visibleSessions)
             const maxTotal = Math.max(1, ...weeks.map((w) => w.dravec + w.bila))
             const seasonTotal = weeks.reduce((sum, w) => sum + w.dravec + w.bila, 0)
+            const bestWeek = weeks.reduce((best, w) => Math.max(best, w.dravec + w.bila), 0)
             return (
               <div className="season-chart-wrap">
-                <div className="season-chart-label">
-                  <span>Sezóna {new Date().getFullYear()} · úlovky po týdnech{seasonTotal > 0 ? ` · ${seasonTotal} celkem` : ''}</span>
-                  <span className="season-chart-legend">
-                    <span><i className="dot" style={{ background: 'var(--water-mid)' }} />Dravci</span>
-                    <span><i className="dot" style={{ background: 'var(--amber)' }} />Bílá ryba</span>
+                <div
+                  className="season-chart-label clickable"
+                  onClick={() => setChartCollapsed((v) => !v)}
+                >
+                  <span>
+                    <span className="chevron">{chartCollapsed ? '▸' : '▾'}</span>
+                    {' '}Sezóna {new Date().getFullYear()} · úlovky po týdnech
+                    {seasonTotal > 0 ? ` · ${seasonTotal} celkem` : ''}
+                    {bestWeek > 0 ? ` · nejsilnější týden ${bestWeek}×` : ''}
                   </span>
+                  {!chartCollapsed && (
+                    <span className="season-chart-legend">
+                      <span><i className="dot" style={{ background: 'var(--water-mid)' }} />Dravci</span>
+                      <span><i className="dot" style={{ background: 'var(--amber)' }} />Bílá ryba</span>
+                    </span>
+                  )}
                 </div>
-                <div className="season-chart">
-                  {weeks.map((w, i) => {
-                    const total = w.dravec + w.bila
-                    if (total === 0) return <div key={i} className="season-chart-bar"><div className="season-chart-seg empty" /></div>
-                    const dravecH = Math.round((w.dravec / maxTotal) * 60)
-                    const bilaH = Math.round((w.bila / maxTotal) * 60)
-                    return (
-                      <div key={i} className="season-chart-bar" title={`Týden ${i + 1}: ${total} úlovky`}>
-                        {w.bila > 0 && <div className="season-chart-seg bila" style={{ height: Math.max(2, bilaH) }} />}
-                        {w.dravec > 0 && <div className="season-chart-seg dravec" style={{ height: Math.max(2, dravecH) }} />}
-                      </div>
-                    )
-                  })}
-                </div>
+                {!chartCollapsed && (
+                  <div className="season-chart">
+                    {weeks.map((w, i) => {
+                      const total = w.dravec + w.bila
+                      if (total === 0) return <div key={i} className="season-chart-bar"><div className="season-chart-seg empty" /></div>
+                      const dravecH = Math.round((w.dravec / maxTotal) * 60)
+                      const bilaH = Math.round((w.bila / maxTotal) * 60)
+                      return (
+                        <div key={i} className="season-chart-bar" title={`Týden ${i + 1}: ${total} úlovky`}>
+                          {w.bila > 0 && <div className="season-chart-seg bila" style={{ height: Math.max(2, bilaH) }} />}
+                          {w.dravec > 0 && <div className="season-chart-seg dravec" style={{ height: Math.max(2, dravecH) }} />}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })()}
