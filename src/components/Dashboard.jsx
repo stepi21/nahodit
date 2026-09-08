@@ -4264,18 +4264,12 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
             const weeks = computeWeeklyActivity(visibleSessions)
             const maxTotal = Math.max(1, ...weeks.map((w) => w.dravec + w.bila))
             const seasonTotal = weeks.reduce((sum, w) => sum + w.dravec + w.bila, 0)
-            const bestWeek = weeks.reduce((best, w) => Math.max(best, w.dravec + w.bila), 0)
             return (
               <div className="season-chart-wrap">
-                <div
-                  className="season-chart-label clickable"
-                  onClick={() => setChartCollapsed((v) => !v)}
-                >
+                <div className="season-chart-label">
                   <span>
-                    <span className="chevron">{chartCollapsed ? '▸' : '▾'}</span>
-                    {' '}Sezóna {new Date().getFullYear()} · úlovky po týdnech
+                    Sezóna {new Date().getFullYear()} · úlovky po týdnech
                     {seasonTotal > 0 ? ` · ${seasonTotal} celkem` : ''}
-                    {bestWeek > 0 ? ` · nejsilnější týden ${bestWeek}×` : ''}
                   </span>
                   {!chartCollapsed && (
                     <span className="season-chart-legend">
@@ -4283,6 +4277,13 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
                       <span><i className="dot" style={{ background: 'var(--amber)' }} />Bílá ryba</span>
                     </span>
                   )}
+                  <button
+                    className="chart-toggle-btn"
+                    onClick={() => setChartCollapsed((v) => !v)}
+                    aria-label={chartCollapsed ? 'Rozbalit graf' : 'Sbalit graf'}
+                  >
+                    {chartCollapsed ? '▸' : '▾'}
+                  </button>
                 </div>
                 {!chartCollapsed && (
                   <div className="season-chart">
