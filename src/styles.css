@@ -493,15 +493,17 @@ header{ background:var(--water-deep); color:var(--white); padding:16px 20px; }
 /* ---------- feed na Domů — fotka jako dominanta karty ---------- */
 .index-loading{ padding:12px 14px; font-size:var(--fs-base); color:var(--ink-soft); font-style:italic; }
 .index-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 14px 12px; }
-.index-cell{ border-radius:8px; padding:10px 12px; }
-.index-cell.category-dravec{ background:#5C7A85; color:#fff; }
-.index-cell.category-bila{ background:#C4A572; color:#3A2A0F; }
-.index-cell-label{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.04em; opacity:.85; }
-.index-cell-value{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-lg); margin-top:2px; }
+.index-cell{ background:var(--paper); border:1px solid var(--paper-line); border-left:3px solid var(--paper-line); border-radius:0 8px 8px 0; padding:10px 12px 10px 13px; }
+.index-cell.category-dravec{ background:#EEF2F1; border-color:#D6DFDD; border-left-color:#5C7A85; }
+.index-cell.category-bila{ background:#FAF3E7; border-color:#E7D4B0; border-left-color:#C4A572; }
+.index-cell-label{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.04em; }
+.index-cell.category-dravec .index-cell-label{ color:#3E5960; }
+.index-cell.category-bila .index-cell-label{ color:var(--amber-deep); }
+.index-cell-value{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-lg); margin-top:2px; color:var(--ink); }
 .index-cell-days{ display:flex; flex-direction:column; gap:5px; margin-top:6px; }
 .index-day-row{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
-.index-day-label{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.03em; opacity:.8; }
-.index-day-value{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-sm2); }
+.index-day-label{ font-family:'IBM Plex Mono', monospace; font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); }
+.index-day-value{ font-family:'Fraunces', serif; font-weight:600; font-size:var(--fs-sm2); color:var(--ink); }
 .index-footer{ padding:0 14px 12px; font-size:var(--fs-2xs); color:var(--ink-soft); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
 
 .leaderboard-card{ margin:0 18px 14px; background:var(--white); border:1px solid var(--paper-line); border-radius:12px; overflow:hidden; }
