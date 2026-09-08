@@ -423,9 +423,35 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
 
 
 
-  function showToast(message) {
-    setToast(message)
-    setTimeout(() => setToast(null), 2200)
+  function showToast(message, variant = 'default') {
+    setToast({ message, variant })
+    setTimeout(() => setToast(null), variant === 'record' ? 3400 : 2200)
+  }
+
+  // Appka appce spočítá, jestli nový úlovek překonává dosavadní osobní
+  // rekord (jen moje výpravy) nebo dokonce rekord celé party (všichni
+  // členové) pro daný druh -- appka appce porovná se stavem PŘED
+  // uložením nového úlovku (parametr `sessions` appka appce předá
+  // aktuální, ještě needitovaný stav), ať appka appka nepočítá nový
+  // úlovek sama proti sobě.
+  function detectNewRecord(sessions, species, lengthCm) {
+    const len = Number(lengthCm)
+    if (!species || !Number.isFinite(len) || len <= 0) return null
+    const key = species.trim().toLowerCase()
+    let personalBest = 0
+    let partyBest = 0
+    sessions.forEach((s) => {
+      ;(s.catches || []).forEach((cc) => {
+        const ccLen = Number(cc.length_cm)
+        if ((cc.species || '').trim().toLowerCase() !== key) return
+        if (!Number.isFinite(ccLen)) return
+        if (ccLen > partyBest) partyBest = ccLen
+        if (s.user_id === userId && ccLen > personalBest) personalBest = ccLen
+      })
+    })
+    if (len > partyBest && partyBest > 0) return 'party'
+    if (len > personalBest && personalBest > 0) return 'personal'
+    return null
   }
 
   const placementTargetRef = useRef(null)
@@ -2790,9 +2816,16 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
         water_station_name: c.water_station_name || null, water_data_precision: c.water_data_precision || null, water_spa_level: c.water_spa_level ?? null,
       })
       if (error) { alert(error.message); return }
+      const recordType = detectNewRecord(sessions, c.species, c.length)
       setDraftCatch(null)
       await loadSessions()
-      showToast('✓ Úlovek uložen')
+      if (recordType === 'party') {
+        showToast(`🏆 Nový rekord party! ${c.species} ${c.length} cm`, 'record')
+      } else if (recordType === 'personal') {
+        showToast(`🎉 Nový osobní rekord! ${c.species} ${c.length} cm`, 'record')
+      } else {
+        showToast('✓ Úlovek uložen')
+      }
     } catch (err) {
       alert('Uložení se nepovedlo (možná vypadlo připojení). Formulář zůstává vyplněný, zkus to prosím znovu.\n\n' + err.message)
     }
@@ -5383,7 +5416,7 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
           onDeleted={() => { setTicketCatch(null); loadSessions() }}
         />
       )}
-      {toast && <div className="save-toast">{toast}</div>}
+      {toast && <div className={`save-toast ${toast.variant === 'record' ? 'save-toast-record' : ''}`}>{toast.message}</div>}
     </div>
   )
 }
