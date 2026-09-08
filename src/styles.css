@@ -794,7 +794,7 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
 
 /* ---------- side panel (forms that need the map clickable underneath) ---------- */
 .side-panel{
-  position:fixed; top:90px; right:20px; z-index:500;
+  position:fixed; top:90px; right:20px; z-index:950;
   max-height:calc(100vh - 110px); overflow-y:auto;
 }
 .side-panel .ticket{ box-shadow:0 20px 50px rgba(18,59,82,.35); max-height:none; overflow-y:visible; }
@@ -804,12 +804,12 @@ main{ position:relative; display:flex; flex-direction:column; min-height:0; }
 @media (max-width:860px){
   .side-panel{
     position:fixed; inset:0; max-height:none; overflow-y:hidden;
-    display:flex; flex-direction:column;
+    display:flex; flex-direction:column; background:var(--paper);
   }
   .side-panel .ticket{
     flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
     border-radius:0; max-width:none !important;
-    padding-bottom:env(safe-area-inset-bottom);
+    padding-bottom:calc(20px + env(safe-area-inset-bottom));
   }
   .side-panel .ticket-top{ padding-top:calc(16px + env(safe-area-inset-top)); }
   .side-panel .ticket-close{ top:calc(14px + env(safe-area-inset-top)); }
