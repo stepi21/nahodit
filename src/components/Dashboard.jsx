@@ -401,6 +401,23 @@ export default function Dashboard({ groupId, userId, profile, isDemoGroup, onSig
   // uloží jako CSS proměnnou a použije místo dvh tam, kde na přesnou
   // výšku obrazovky záleží (viz .app a .bottom-tab-bar ve styles.css).
   useEffect(() => {
+    // Tenhle trik (brát výšku appky z window.screen místo z "dvh") appka
+    // potřebuje VÝHRADNĚ na iOS -- tam appka na živém testu zjistila
+    // ten konkrétní bug WebKitu popsaný výš. Na Androidu appka
+    // window.screen.width/height nemůže použít stejně -- appka tam
+    // (na rozdíl od iOS) obsahuje i systémovou stavovou/navigační lištu,
+    // co appka do webového viewportu nepočítá, takže appce vycházelo
+    // "--real-vh" větší než skutečná viditelná výška appky a appka pak
+    // spodní lištu (počítanou přes "top: real-vh - výška lišty")
+    // posunula CELOU pod viditelnou plochu appky -- lišta appce na
+    // Androidu tím zmizela úplně. Appka proto na Androidu (a jinde mimo
+    // iOS) tenhle výpočet appce vůbec nepustí a appka se tam spolehne na
+    // normální CSS fallback "100dvh" (viz var(--real-vh, 100dvh) v
+    // styles.css) -- to appce na Androidu funguje spolehlivě samo.
+    const isIOS = /iP(hone|od|ad)/.test(window.navigator.userAgent)
+      || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1)
+    if (!isIOS) return
+
     function updateRealVh() {
       // screen.width/height appka bere podle PŘIROZENÉ orientace telefonu
       // (na výšku je screen.height ta delší strana) -- appka proto podle
